@@ -25,15 +25,49 @@ actor Transcriber {
     private func ensureLoaded() async throws {
         if whisperKit != nil { return }
 
+        let localModelFolder = existingLocalModelFolder()
+        if let localModelFolder {
+            DebugLog.shared.add("Loading local Whisper model: \(localModelFolder.path)")
+        } else {
+            DebugLog.shared.add("Local Whisper model not found; attempting download for \(modelName)")
+        }
         let config = WhisperKitConfig(
-            model: modelName,
+            model: localModelFolder == nil ? modelName : nil,
+            downloadBase: modelDownloadBase(),
+            modelFolder: localModelFolder?.path,
             verbose: false,
             logLevel: .error,
             prewarm: true,
             load: true,
-            download: true
+            download: localModelFolder == nil
         )
         whisperKit = try await WhisperKit(config)
+        DebugLog.shared.add("WhisperKit loaded")
+    }
+
+    private func existingLocalModelFolder() -> URL? {
+        let folder = modelDownloadBase()
+            .appendingPathComponent("argmaxinc", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent(modelName, isDirectory: true)
+
+        let requiredModelNames = [
+            "MelSpectrogram.mlmodelc",
+            "AudioEncoder.mlmodelc",
+            "TextDecoder.mlmodelc"
+        ]
+        let hasRequiredFiles = requiredModelNames.allSatisfy {
+            FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
+        }
+
+        return hasRequiredFiles ? folder : nil
+    }
+
+    private func modelDownloadBase() -> URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents", isDirectory: true)
+            .appendingPathComponent("huggingface", isDirectory: true)
+            .appendingPathComponent("models", isDirectory: true)
     }
 
     func transcribe(audioURL: URL) async throws -> String {
@@ -42,7 +76,9 @@ actor Transcriber {
             throw NSError(domain: "Transcriber", code: -1)
         }
 
+        DebugLog.shared.add("Calling WhisperKit.transcribe")
         let results = try await kit.transcribe(audioPath: audioURL.path)
+        DebugLog.shared.add("WhisperKit returned \(results.count) segment(s)")
 
         // Clean up the temp file.
         try? FileManager.default.removeItem(at: audioURL)

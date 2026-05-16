@@ -12,7 +12,7 @@ enum ClipboardWriter {
     /// If `autoPaste` is true, simulates Cmd+V into the frontmost app.
     /// Restores the previous clipboard contents after pasting (so the user's
     /// existing clipboard isn't clobbered) — this is how Raycast / Superwhisper do it.
-    static func copy(_ text: String, autoPaste: Bool) {
+    static func copy(_ text: String, autoPaste: Bool, targetApp: NSRunningApplication?) {
         let pasteboard = NSPasteboard.general
 
         // Snapshot existing clipboard so we can restore.
@@ -20,11 +20,31 @@ enum ClipboardWriter {
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        DebugLog.shared.add("Clipboard updated with \(text.count) character(s)")
 
-        guard autoPaste else { return }
+        guard autoPaste else {
+            DebugLog.shared.add("Auto-paste disabled; leaving text on clipboard")
+            return
+        }
 
-        // Small delay to ensure pasteboard is updated before Cmd+V fires.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+        let accessibilityTrusted = Self.ensureAccessibilityPermission()
+        if !accessibilityTrusted {
+            DebugLog.shared.add("Accessibility permission is not trusted; leaving text on clipboard instead of auto-pasting")
+            return
+        }
+
+        let pasteDelay: TimeInterval
+        if let targetApp {
+            DebugLog.shared.add("Activating target app before paste: \(targetApp.localizedName ?? targetApp.bundleIdentifier ?? "<unknown>")")
+            targetApp.activate(options: [.activateIgnoringOtherApps])
+            pasteDelay = 0.18
+        } else {
+            pasteDelay = 0.05
+        }
+
+        // Small delay to ensure pasteboard and focus are updated before Cmd+V fires.
+        DispatchQueue.main.asyncAfter(deadline: .now() + pasteDelay) {
+            DebugLog.shared.add("Posting Cmd+V")
             simulateCmdV()
 
             // Restore the previous clipboard after paste completes.
@@ -50,5 +70,14 @@ enum ClipboardWriter {
 
         down?.post(tap: .cgAnnotatedSessionEventTap)
         up?.post(tap: .cgAnnotatedSessionEventTap)
+    }
+
+    @discardableResult
+    static func ensureAccessibilityPermission(prompt: Bool = true) -> Bool {
+        guard prompt else { return AXIsProcessTrusted() }
+        let options = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
     }
 }

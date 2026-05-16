@@ -48,6 +48,9 @@ final class StatusBarController {
         menu.addItem(withTitle: "Edit Vocabulary…",
                      action: #selector(openVocabulary),
                      keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Show Debug Panel",
+                     action: #selector(openDebug),
+                     keyEquivalent: "").target = self
         menu.addItem(.separator())
         let aboutItem = NSMenuItem(title: "Hold F5 — transcribe",
                                    action: nil, keyEquivalent: "")
@@ -163,5 +166,9 @@ final class StatusBarController {
 
     @objc private func openVocabulary() {
         Vocabulary.shared.openUserFileInEditor()
+    }
+
+    @objc private func openDebug() {
+        DebugWindowController.shared.show()
     }
 }
