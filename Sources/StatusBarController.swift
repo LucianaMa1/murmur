@@ -91,6 +91,7 @@ final class StatusBarController {
 
         pulseTimer?.invalidate()
         pulseTimer = nil
+        button.alphaValue = 1.0
 
         switch state {
         case .idle:
@@ -134,9 +135,11 @@ final class StatusBarController {
 
     private func startPulsing() {
         pulseTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.statusItem.button?.alphaValue = self.pulseUp ? 1.0 : 0.4
-            self.pulseUp.toggle()
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.statusItem.button?.alphaValue = self.pulseUp ? 1.0 : 0.4
+                self.pulseUp.toggle()
+            }
         }
     }
 
@@ -145,10 +148,12 @@ final class StatusBarController {
         let frames = ["ellipsis.circle", "ellipsis.circle.fill"]
         var idx = 0
         pulseTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.statusItem.button?.image = self.symbol(frames[idx % frames.count],
-                                                       color: .systemBlue)
-            idx += 1
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.statusItem.button?.image = self.symbol(frames[idx % frames.count],
+                                                           color: .systemBlue)
+                idx += 1
+            }
         }
     }
 

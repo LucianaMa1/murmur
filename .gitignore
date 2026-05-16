@@ -3,3 +3,6 @@ DerivedData/
 *.xcuserdata
 *.xcuserstate
 build/
+.build/
+dist/
+.wrangler/

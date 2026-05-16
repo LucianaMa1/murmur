@@ -21,6 +21,7 @@
 //  `cat`, `grep`, version-control, or sync them however they like.
 //
 
+import AppKit
 import Foundation
 
 struct VocabularyEntry {

@@ -49,7 +49,7 @@ final class AudioRecorder {
 
         do {
             outputFile = try AVAudioFile(forWriting: url,
-                                         settings: outputFormat.settingsForFile,
+                                         settings: outputFormat.settings,
                                          commonFormat: .pcmFormatInt16,
                                          interleaved: true)
         } catch {

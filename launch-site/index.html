@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Murmur — hold a key, speak, paste into any Mac app</title>
+  <meta name="description" content="Murmur is a macOS menu-bar dictation app with hold-to-record hotkeys, local Whisper transcription, optional LLM polish, auto-paste, and editable vocabulary." />
+  <meta property="og:title" content="Murmur — Dictation for Mac people who hate context switching" />
+  <meta property="og:description" content="Hold F5 for local raw transcription or F6 for AI-polished text. Murmur pastes into the app you are already using." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://murmur.luciana.digital" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08080b;
+      --panel: rgba(255,255,255,.07);
+      --panel-2: rgba(255,255,255,.11);
+      --line: rgba(255,255,255,.14);
+      --text: #f7f2ec;
+      --muted: #b6aba3;
+      --accent: #ff8d6b;
+      --accent-2: #8fd8ff;
+      --green: #b9f6ca;
+      --shadow: 0 30px 80px rgba(0,0,0,.45);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(255,141,107,.28), transparent 32rem),
+        radial-gradient(circle at 84% 14%, rgba(143,216,255,.18), transparent 34rem),
+        linear-gradient(180deg, #121018 0%, var(--bg) 48%, #050507 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { color: inherit; }
+    .wrap { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+    header { padding: 26px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -.02em; }
+    .logo { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 12px; display: grid; place-items: center; background: var(--panel); box-shadow: var(--shadow); }
+    .nav { display: flex; gap: 10px; flex-wrap: wrap; }
+    .nav a, .button { text-decoration: none; border: 1px solid var(--line); background: var(--panel); padding: 10px 14px; border-radius: 999px; color: var(--text); font-weight: 700; font-size: 14px; }
+    .button.primary { background: linear-gradient(135deg, var(--accent), #ffd39c); color: #170b07; border: 0; box-shadow: 0 18px 50px rgba(255,141,107,.25); }
+    .hero { padding: 78px 0 56px; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(330px, .92fr); gap: 44px; align-items: center; }
+    .eyebrow { color: var(--accent-2); font-weight: 800; text-transform: uppercase; font-size: 13px; letter-spacing: .14em; }
+    h1 { font-size: clamp(48px, 8vw, 92px); line-height: .88; letter-spacing: -.075em; margin: 16px 0 22px; }
+    .sub { font-size: clamp(19px, 2.1vw, 25px); line-height: 1.4; color: var(--muted); max-width: 710px; margin: 0 0 30px; }
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .note { color: var(--muted); font-size: 14px; margin-top: 16px; }
+    .demo { border: 1px solid var(--line); border-radius: 34px; padding: 18px; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.045)); box-shadow: var(--shadow); }
+    .screen { border-radius: 24px; overflow: hidden; background: #111218; border: 1px solid rgba(255,255,255,.12); }
+    .chrome { display: flex; gap: 7px; padding: 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .dot { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .dot:nth-child(2){background:#ffbd2e}.dot:nth-child(3){background:#28c840}
+    .content { padding: 24px; }
+    .menu { width: 100%; border: 1px solid rgba(255,255,255,.12); border-radius: 18px; background: rgba(0,0,0,.28); padding: 14px; margin-bottom: 18px; }
+    .menu-row { display: flex; justify-content: space-between; padding: 11px 12px; border-radius: 12px; color: var(--muted); }
+    .menu-row.active { color: var(--text); background: rgba(255,255,255,.08); }
+    .key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--green); }
+    .pastebox { background: #f8f1e9; color: #18130f; border-radius: 18px; padding: 18px; font-size: 18px; line-height: 1.45; min-height: 160px; }
+    .cursor { display: inline-block; width: 9px; height: 22px; background: #111; vertical-align: -4px; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    section { padding: 54px 0; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card { border: 1px solid var(--line); background: var(--panel); border-radius: 24px; padding: 24px; }
+    .card h3 { margin: 0 0 10px; font-size: 22px; letter-spacing: -.03em; }
+    .card p { color: var(--muted); line-height: 1.55; margin: 0; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; counter-reset: step; }
+    .step { counter-increment: step; }
+    .step:before { content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #170b07; font-weight: 900; margin-bottom: 14px; }
+    .split { display: grid; grid-template-columns: .9fr 1.1fr; gap: 20px; align-items: stretch; }
+    pre { white-space: pre-wrap; word-break: break-word; margin: 0; color: #d9f6ff; font-size: 14px; line-height: 1.6; }
+    footer { padding: 46px 0 70px; color: var(--muted); border-top: 1px solid var(--line); }
+    @media (max-width: 860px) { .hero, .split { grid-template-columns: 1fr; } .grid, .steps { grid-template-columns: 1fr; } header { align-items:flex-start; flex-direction:column; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><div class="logo">〰️</div><span>Murmur</span></div>
+      <nav class="nav">
+        <a href="#how">How it works</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/LucianaMa1/murmur">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="hero">
+      <div>
+        <div class="eyebrow">macOS menu-bar dictation</div>
+        <h1>Hold a key. Say the thought. Get text.</h1>
+        <p class="sub">Murmur turns your voice into text in the app you are already using. Hold <strong>F5</strong> for local raw transcription or <strong>F6</strong> for LLM-polished writing, then Murmur auto-pastes at your cursor.</p>
+        <div class="cta">
+          <a class="button primary" href="#install">Install prototype</a>
+          <a class="button" href="https://github.com/LucianaMa1/murmur">View source</a>
+        </div>
+        <p class="note">Early prototype for macOS 14+ and Apple Silicon. F6 polish requires your OpenAI API key.</p>
+      </div>
+
+      <div class="demo" aria-label="Murmur demo mockup">
+        <div class="screen">
+          <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="content">
+            <div class="menu">
+              <div class="menu-row"><span>〰️ Murmur</span><span>menu bar</span></div>
+              <div class="menu-row active"><span>Hold F5</span><span class="key">raw</span></div>
+              <div class="menu-row active"><span>Hold F6</span><span class="key">polish</span></div>
+              <div class="menu-row"><span>Vocabulary</span><span>plain text</span></div>
+            </div>
+            <div class="pastebox">“Turn this rambly thought into a clean launch note and paste it right here.”<span class="cursor"></span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <section id="how">
+      <div class="grid">
+        <article class="card"><h3>Global hold-to-record</h3><p>No separate recorder window. Put your cursor in Slack, Notes, Cursor, Gmail, Linear, or any text field and start talking.</p></article>
+        <article class="card"><h3>Raw or polished</h3><p>Use F5 for fast local transcription. Use F6 when the thought needs cleanup before it lands.</p></article>
+        <article class="card"><h3>Vocabulary you control</h3><p>Names, commands, product terms, and jargon live in editable plain-text files, not an opaque database.</p></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="steps">
+        <div class="card step"><h3>Click anywhere</h3><p>Start from the app where the text belongs.</p></div>
+        <div class="card step"><h3>Hold F5/F6</h3><p>Choose raw local dictation or AI-polished output.</p></div>
+        <div class="card step"><h3>Speak naturally</h3><p>Capture the first draft faster than typing.</p></div>
+        <div class="card step"><h3>Release to paste</h3><p>Murmur writes into the active app automatically.</p></div>
+      </div>
+    </section>
+
+    <section id="install" class="split">
+      <div class="card">
+        <h3>Install the prototype</h3>
+        <p>Run the installer, grant macOS microphone/input/accessibility permissions, then look for the 〰️ icon in your menu bar.</p>
+      </div>
+      <div class="card">
+        <pre>curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash</pre>
+      </div>
+    </section>
+  </div>
+  <footer>
+    <div class="wrap">Built by <a href="https://luciana.digital">Luciana Ma</a>. Open source on <a href="https://github.com/LucianaMa1/murmur">GitHub</a>.</div>
+  </footer>
+</body>
+</html>

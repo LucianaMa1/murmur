@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "murmur-launch",
+  "main": "worker.js",
+  "compatibility_date": "2026-05-15",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./launch-site",
+    "binding": "ASSETS"
+  },
+  "routes": [
+    {
+      "pattern": "murmur.luciana.digital",
+      "custom_domain": true,
+      "zone_name": "luciana.digital"
+    }
+  ]
+}

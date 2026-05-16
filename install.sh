@@ -1,11 +1,11 @@
 #!/bin/bash
 # install.sh — one-shot installer for Murmur.
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/lucianaMa/murmur/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash
 
 set -e
 
-REPO="${MURMUR_REPO:-lucianaMa/murmur}"
+REPO="${MURMUR_REPO:-LucianaMa1/murmur}"
 BRANCH="${MURMUR_BRANCH:-main}"
 INSTALL_DIR="$HOME/.murmur"
 

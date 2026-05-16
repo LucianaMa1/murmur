@@ -16,7 +16,7 @@ let package = Package(
             dependencies: [
                 .product(name: "WhisperKit", package: "WhisperKit")
             ],
-            path: "Murmur/Sources"
+            path: "Sources"
         )
     ]
 )
