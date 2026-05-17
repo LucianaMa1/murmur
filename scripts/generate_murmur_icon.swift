@@ -23,6 +23,30 @@ func color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColo
     NSColor(calibratedRed: r / 255, green: g / 255, blue: b / 255, alpha: a)
 }
 
+func handFont(size: CGFloat) -> NSFont {
+    let names = [
+        "MarkerFelt-Wide",
+        "MarkerFelt-Thin",
+        "ChalkboardSE-Bold",
+        "Noteworthy-Bold",
+        "ArialRoundedMTBold"
+    ]
+    for name in names {
+        if let font = NSFont(name: name, size: size) {
+            return font
+        }
+    }
+    return NSFont.systemFont(ofSize: size, weight: .black)
+}
+
+func drawStroke(_ path: NSBezierPath, color strokeColor: NSColor, width: CGFloat) {
+    path.lineCapStyle = .round
+    path.lineJoinStyle = .round
+    path.lineWidth = width
+    strokeColor.setStroke()
+    path.stroke()
+}
+
 func drawIcon(size: CGFloat) -> NSImage {
     let image = NSImage(size: NSSize(width: size, height: size))
     image.lockFocus()
@@ -36,90 +60,90 @@ func drawIcon(size: CGFloat) -> NSImage {
 
     let inset = size * 0.075
     let baseRect = rect.insetBy(dx: inset, dy: inset)
-    let corner = size * 0.22
+    let corner = size * 0.20
     let basePath = NSBezierPath(roundedRect: baseRect, xRadius: corner, yRadius: corner)
 
     let baseGradient = NSGradient(colors: [
-        color(6, 6, 8),
-        color(30, 30, 34),
-        color(0, 0, 0)
+        color(255, 253, 247),
+        color(247, 244, 238),
+        color(255, 255, 252)
     ])!
-    baseGradient.draw(in: basePath, angle: 135)
+    baseGradient.draw(in: basePath, angle: 90)
 
-    let glowRect = NSRect(
-        x: size * 0.12,
-        y: size * 0.36,
-        width: size * 0.76,
-        height: size * 0.48
-    )
-    let glowPath = NSBezierPath(ovalIn: glowRect)
-    NSGraphicsContext.saveGraphicsState()
-    glowPath.setClip()
-    NSGradient(colors: [
-        color(255, 58, 150, 0.46),
-        color(255, 255, 255, 0.16),
-        color(255, 255, 255, 0.0)
-    ])!.draw(in: glowPath, relativeCenterPosition: NSPoint(x: -0.18, y: 0.12))
-    NSGraphicsContext.restoreGraphicsState()
-
-    NSColor.white.withAlphaComponent(0.24).setStroke()
-    basePath.lineWidth = max(1.0, size * 0.012)
+    NSColor.black.withAlphaComponent(0.08).setStroke()
+    basePath.lineWidth = max(1.0, size * 0.01)
     basePath.stroke()
 
-    let innerRect = baseRect.insetBy(dx: size * 0.12, dy: size * 0.16)
-    let lineWidth = max(3.0, size * 0.055)
-    let mPath = NSBezierPath()
-    mPath.lineCapStyle = .round
-    mPath.lineJoinStyle = .round
-    mPath.lineWidth = lineWidth
+    let markRect = NSRect(
+        x: baseRect.minX + baseRect.width * 0.08,
+        y: baseRect.midY + baseRect.height * 0.02,
+        width: baseRect.width * 0.22,
+        height: baseRect.height * 0.18
+    )
+    let wave = NSBezierPath()
+    wave.move(to: NSPoint(x: markRect.minX, y: markRect.midY - markRect.height * 0.10))
+    wave.curve(
+        to: NSPoint(x: markRect.minX + markRect.width * 0.34, y: markRect.midY - markRect.height * 0.08),
+        controlPoint1: NSPoint(x: markRect.minX + markRect.width * 0.12, y: markRect.maxY),
+        controlPoint2: NSPoint(x: markRect.minX + markRect.width * 0.22, y: markRect.minY)
+    )
+    wave.curve(
+        to: NSPoint(x: markRect.minX + markRect.width * 0.72, y: markRect.midY + markRect.height * 0.26),
+        controlPoint1: NSPoint(x: markRect.minX + markRect.width * 0.48, y: markRect.maxY),
+        controlPoint2: NSPoint(x: markRect.minX + markRect.width * 0.56, y: markRect.maxY)
+    )
+    wave.curve(
+        to: NSPoint(x: markRect.maxX, y: markRect.midY - markRect.height * 0.30),
+        controlPoint1: NSPoint(x: markRect.minX + markRect.width * 0.84, y: markRect.minY),
+        controlPoint2: NSPoint(x: markRect.minX + markRect.width * 0.91, y: markRect.maxY)
+    )
+    drawStroke(wave, color: color(8, 8, 8), width: max(2.2, size * 0.022))
 
-    let yMid = innerRect.midY
-    let amp = innerRect.height * 0.30
-    let points = [
-        NSPoint(x: innerRect.minX, y: yMid - amp * 0.82),
-        NSPoint(x: innerRect.minX + innerRect.width * 0.17, y: yMid + amp * 0.86),
-        NSPoint(x: innerRect.minX + innerRect.width * 0.33, y: yMid - amp * 0.52),
-        NSPoint(x: innerRect.minX + innerRect.width * 0.50, y: yMid + amp * 0.82),
-        NSPoint(x: innerRect.minX + innerRect.width * 0.67, y: yMid - amp * 0.52),
-        NSPoint(x: innerRect.minX + innerRect.width * 0.83, y: yMid + amp * 0.86),
-        NSPoint(x: innerRect.maxX, y: yMid - amp * 0.82)
+    let text = "Murmur"
+    let paragraph = NSMutableParagraphStyle()
+    paragraph.alignment = .left
+    var fontSize = size * 0.22
+    var font = handFont(size: fontSize)
+    var attributes: [NSAttributedString.Key: Any] = [
+        .font: font,
+        .foregroundColor: color(5, 5, 5),
+        .paragraphStyle: paragraph,
+        .kern: size * 0.002
     ]
-    mPath.move(to: points[0])
-    for idx in 1..<points.count {
-        mPath.line(to: points[idx])
+    var textSize = text.size(withAttributes: attributes)
+    let maxWidth = baseRect.width * 0.60
+    while textSize.width > maxWidth && fontSize > size * 0.10 {
+        fontSize -= size * 0.006
+        font = handFont(size: fontSize)
+        attributes[.font] = font
+        textSize = text.size(withAttributes: attributes)
     }
+
+    let textRect = NSRect(
+        x: baseRect.minX + baseRect.width * 0.34,
+        y: baseRect.midY - baseRect.height * 0.08,
+        width: maxWidth,
+        height: textSize.height * 1.20
+    )
 
     NSGraphicsContext.saveGraphicsState()
-    NSShadow().apply {
-        $0.shadowColor = color(255, 58, 150, 0.62)
-        $0.shadowBlurRadius = size * 0.026
-        $0.shadowOffset = .zero
-    }
-    color(250, 250, 252).setStroke()
-    mPath.stroke()
+    let transform = NSAffineTransform()
+    transform.translateX(by: textRect.midX, yBy: textRect.midY)
+    transform.rotate(byDegrees: -1.5)
+    transform.translateX(by: -textRect.midX, yBy: -textRect.midY)
+    transform.concat()
+    text.draw(in: textRect, withAttributes: attributes)
     NSGraphicsContext.restoreGraphicsState()
 
-    let dotDiameter = size * 0.14
-    let dotRect = NSRect(
-        x: baseRect.maxX - dotDiameter * 1.55,
-        y: baseRect.maxY - dotDiameter * 1.55,
+    let dotDiameter = size * 0.045
+    let dot = NSBezierPath(ovalIn: NSRect(
+        x: textRect.maxX - dotDiameter * 0.20,
+        y: textRect.minY + textRect.height * 0.20,
         width: dotDiameter,
         height: dotDiameter
-    )
-    let dotGlow = NSBezierPath(ovalIn: dotRect.insetBy(dx: -dotDiameter * 0.42, dy: -dotDiameter * 0.42))
-    color(255, 58, 150, 0.26).setFill()
-    dotGlow.fill()
-    let dot = NSBezierPath(ovalIn: dotRect)
-    color(255, 58, 150).setFill()
+    ))
+    color(255, 60, 155).setFill()
     dot.fill()
-    color(255, 255, 255, 0.72).setStroke()
-    dot.lineWidth = max(1, size * 0.006)
-    dot.stroke()
-
-    let shineRect = NSRect(x: baseRect.minX, y: baseRect.midY, width: baseRect.width, height: baseRect.height / 2)
-    let shine = NSBezierPath(roundedRect: shineRect, xRadius: corner, yRadius: corner)
-    NSColor.white.withAlphaComponent(0.06).setFill()
-    shine.fill()
 
     return image
 }
