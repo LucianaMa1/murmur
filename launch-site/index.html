@@ -5,264 +5,287 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Murmur — hold a key, speak, paste into any Mac app</title>
   <meta name="description" content="Murmur is a macOS menu-bar dictation app with hold-to-record hotkeys, local Whisper transcription, optional LLM polish, auto-paste, and editable vocabulary." />
-  <meta property="og:title" content="Murmur — Dictation for Mac people who hate context switching" />
+  <meta property="og:title" content="Murmur — native macOS dictation" />
   <meta property="og:description" content="Hold F5 for local raw transcription or F6 for AI-polished text. Murmur pastes into the app you are already using." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://murmur.luciana.digital" />
   <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #050506;
-      --bg-2: #0d0d10;
-      --surface: rgba(255,255,255,.075);
-      --surface-strong: rgba(255,255,255,.12);
-      --line: rgba(255,255,255,.13);
-      --text: #f6f2ed;
-      --muted: #c9c1b9;
-      --dim: #8f8780;
-      --accent: #ff8b63;
-      --accent-2: #8fd8ff;
-      --green: #b9f6ca;
-      --ink: #171412;
-      --shadow: 0 28px 90px rgba(0,0,0,.48);
-      --radius: 28px;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      --paper: #fffefa;
+      --ink: #050505;
+      --stroke: 4px;
+      --radius: 22px;
+      --display: "Darumadrop One", "Comic Sans MS", ui-rounded, system-ui, sans-serif;
+      --hand: "Gaegu", "Comic Sans MS", ui-rounded, system-ui, sans-serif;
+      color-scheme: light;
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      background:
-        radial-gradient(circle at 16% -8%, rgba(255,139,99,.26), transparent 31rem),
-        radial-gradient(circle at 92% 10%, rgba(143,216,255,.16), transparent 35rem),
-        linear-gradient(180deg, #131119 0%, var(--bg) 42%, #030304 100%);
-      color: var(--text);
-      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--hand);
+      font-size: 22px;
+      line-height: 1.18;
       -webkit-font-smoothing: antialiased;
-      text-rendering: geometricPrecision;
+      text-rendering: optimizeLegibility;
     }
-    a { color: inherit; }
-    .wrap { width: min(1160px, calc(100% - 44px)); margin: 0 auto; }
+    body:before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .28;
+      background-image: radial-gradient(#000 0.7px, transparent 0.7px);
+      background-size: 18px 18px;
+      mix-blend-mode: multiply;
+    }
+    a { color: inherit; text-decoration-thickness: 3px; text-underline-offset: 5px; }
+    .wrap { width: min(1240px, calc(100% - 44px)); margin: 0 auto; }
+    .marker { font-family: var(--display); font-weight: 400; letter-spacing: -.015em; }
+    .sketch-border { border: var(--stroke) solid var(--ink); box-shadow: 7px 7px 0 var(--ink); }
+
     header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      margin: 14px auto 0;
-      width: min(1160px, calc(100% - 44px));
+      width: min(1330px, calc(100% - 40px));
+      margin: 26px auto 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      padding: 10px 12px;
-      border: 1px solid rgba(255,255,255,.11);
-      border-radius: 999px;
-      background: rgba(8,8,10,.66);
-      backdrop-filter: saturate(150%) blur(22px);
-      box-shadow: 0 16px 48px rgba(0,0,0,.25);
+      gap: 22px;
+      position: relative;
+      z-index: 3;
     }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 720; letter-spacing: -.03em; }
-    .logo { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.045)); border: 1px solid var(--line); }
-    .nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .nav a, .button {
-      text-decoration: none;
-      border: 1px solid transparent;
-      padding: 10px 14px;
-      border-radius: 999px;
-      color: #ddd5cd;
-      font-weight: 650;
-      font-size: 14px;
-      transition: transform .18s ease, color .18s ease, background .18s ease, border-color .18s ease;
-    }
-    .nav a:hover, .button:hover { transform: translateY(-1px); color: var(--text); background: rgba(255,255,255,.06); }
-    a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
-    .nav .install-link, .button.primary {
-      color: #160b07;
-      background: linear-gradient(135deg, var(--accent), #ffd19a);
-      box-shadow: 0 18px 52px rgba(255,139,99,.24);
-    }
-    .button.secondary { border-color: var(--line); background: rgba(255,255,255,.055); color: var(--text); }
-    .hero {
-      min-height: calc(100vh - 78px);
-      padding: 78px 0 64px;
-      display: grid;
-      grid-template-columns: minmax(0, .96fr) minmax(390px, 1.04fr);
-      gap: clamp(34px, 5vw, 68px);
-      align-items: center;
-    }
-    .eyebrow { display: inline-flex; align-items: center; gap: 10px; color: var(--accent-2); font-weight: 800; text-transform: uppercase; font-size: 12px; letter-spacing: .16em; }
-    .eyebrow:before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 18px rgba(185,246,202,.75); }
-    h1 { font-size: clamp(46px, 6.25vw, 76px); line-height: .98; letter-spacing: -.045em; margin: 18px 0 20px; max-width: 760px; }
-    .sub { font-size: clamp(18px, 1.85vw, 23px); line-height: 1.42; color: var(--muted); max-width: 680px; margin: 0 0 28px; letter-spacing: -.02em; }
-    .keycap { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; padding: 2px 8px 3px; margin: 0 2px; border-radius: 9px; color: var(--text); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8em; background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 -2px 0 rgba(0,0,0,.28); }
-    .cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
-    .note { color: #d4cbc2; font-size: 14px; line-height: 1.55; margin-top: 18px; max-width: 600px; }
-    .proof { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
-    .pill { border: 1px solid rgba(255,255,255,.11); background: rgba(255,255,255,.055); color: var(--muted); border-radius: 999px; padding: 9px 12px; font-size: 13px; font-weight: 650; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-size: clamp(30px, 3.5vw, 46px); }
+    .brand svg { width: 54px; height: 34px; }
+    .nav { display: flex; align-items: center; gap: clamp(15px, 2.5vw, 34px); font-family: var(--display); font-size: clamp(18px, 2vw, 26px); }
+    .nav a { text-decoration: none; position: relative; }
+    .nav a:hover:after, .nav a:focus-visible:after { content: ""; position: absolute; left: -4px; right: -4px; bottom: -8px; height: 5px; border-radius: 999px; background: var(--ink); }
+    a:focus-visible, button:focus-visible { outline: var(--stroke) solid var(--ink); outline-offset: 5px; }
 
-    .demo { position: relative; border-radius: 38px; padding: 1px; background: linear-gradient(145deg, rgba(255,255,255,.24), rgba(255,255,255,.06), rgba(255,139,99,.24)); box-shadow: var(--shadow); }
-    .demo:before { content: ""; position: absolute; inset: -46px -30px auto auto; width: 190px; height: 190px; border-radius: 50%; background: rgba(143,216,255,.18); filter: blur(45px); z-index: -1; }
-    .screen { border-radius: 37px; overflow: hidden; background: linear-gradient(180deg, #1a1b22, #0e0f14); border: 1px solid rgba(255,255,255,.08); }
-    .menubar { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; color: #d6d0ca; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.045); }
-    .menubar strong { color: var(--text); font-weight: 750; }
-    .desktop { padding: 22px; }
-    .app-window { border-radius: 24px; overflow: hidden; background: #f7f0e8; color: #191512; box-shadow: 0 30px 80px rgba(0,0,0,.38); }
-    .chrome { display: flex; align-items: center; gap: 7px; height: 42px; padding: 0 15px; background: #ebe2d8; border-bottom: 1px solid rgba(0,0,0,.06); }
-    .dot { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .dot:nth-child(2){background:#ffbd2e}.dot:nth-child(3){background:#28c840}
-    .doc { padding: 26px 28px 32px; min-height: 300px; }
-    .doc-label { color: #786f66; font-size: 12px; font-weight: 760; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 14px; }
-    .doc-text { font-size: clamp(20px, 2.75vw, 28px); line-height: 1.24; letter-spacing: -.04em; font-weight: 680; max-width: 560px; }
-    .cursor { display: inline-block; width: 9px; height: 29px; background: #171412; vertical-align: -5px; animation: blink 1s infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-    .recorder { margin: -48px 22px 22px auto; width: min(360px, calc(100% - 44px)); position: relative; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; background: rgba(14,15,19,.86); backdrop-filter: blur(18px); padding: 14px; box-shadow: 0 18px 70px rgba(0,0,0,.46); }
-    .rec-top { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 12px; }
-    .rec-top strong { color: var(--text); }
-    .live { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-    .live:before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.4s infinite; }
-    @keyframes pulse { 0%,100% { opacity: .45; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.1); } }
-    .wave { height: 54px; display: flex; align-items: center; gap: 5px; padding: 0 4px; }
-    .wave span { width: 6px; border-radius: 999px; background: linear-gradient(180deg, var(--accent-2), var(--accent)); opacity: .9; animation: wave 1.2s ease-in-out infinite; }
-    .wave span:nth-child(1){height:17px}.wave span:nth-child(2){height:34px;animation-delay:.1s}.wave span:nth-child(3){height:24px;animation-delay:.2s}.wave span:nth-child(4){height:46px;animation-delay:.3s}.wave span:nth-child(5){height:28px;animation-delay:.4s}.wave span:nth-child(6){height:39px;animation-delay:.5s}.wave span:nth-child(7){height:20px;animation-delay:.6s}.wave span:nth-child(8){height:31px;animation-delay:.7s}.wave span:nth-child(9){height:44px;animation-delay:.8s}.wave span:nth-child(10){height:23px;animation-delay:.9s}
-    @keyframes wave { 50% { transform: scaleY(.62); opacity: .55; } }
-    .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .mode { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); border-radius: 15px; padding: 10px; color: var(--muted); font-size: 12px; }
-    .mode strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 3px; }
+    .hero { text-align: center; padding: clamp(44px, 6vw, 78px) 0 34px; }
+    .eyebrow { margin: 0; font-family: var(--display); font-size: clamp(58px, 10.6vw, 156px); line-height: .83; letter-spacing: -.035em; }
+    h1 { margin: 22px auto 14px; max-width: 1040px; font-family: var(--display); font-size: clamp(38px, 5.8vw, 82px); line-height: .9; letter-spacing: -.02em; }
+    .sub { max-width: 890px; margin: 0 auto; font-size: clamp(24px, 2.9vw, 38px); font-weight: 700; line-height: 1.04; }
+    .keycap-inline { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 0 8px 3px; border: 3px solid var(--ink); border-radius: 10px; font-family: var(--display); line-height: .95; transform: rotate(-1deg); }
+    .cta { margin-top: 28px; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 58px; padding: 11px 22px 14px; border: 4px solid var(--ink); border-radius: 16px; background: var(--paper); text-decoration: none; font-family: var(--display); font-size: clamp(24px, 2.4vw, 34px); box-shadow: 5px 5px 0 var(--ink); transform: rotate(-.6deg); transition: transform .14s ease, box-shadow .14s ease; }
+    .button:nth-child(2) { transform: rotate(.7deg); }
+    .button:hover { transform: translate(3px, 3px) rotate(0); box-shadow: 2px 2px 0 var(--ink); }
+    .note { margin: 22px auto 0; font-size: clamp(19px, 2.1vw, 28px); font-weight: 700; }
+    .pills { margin: 20px auto 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .pill { border: 3px solid var(--ink); border-radius: 999px; padding: 8px 17px 11px; font-family: var(--display); font-size: clamp(18px, 1.8vw, 25px); background: var(--paper); }
 
-    section { padding: 74px 0; }
-    .section-head { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 22px; }
-    .section-head h2 { font-size: clamp(32px, 5vw, 54px); line-height: 1; letter-spacing: -.055em; margin: 0; }
-    .section-head p { color: var(--muted); max-width: 440px; line-height: 1.55; margin: 0; }
-    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .card { border: 1px solid var(--line); background: linear-gradient(180deg, rgba(255,255,255,.082), rgba(255,255,255,.045)); border-radius: var(--radius); padding: 24px; }
-    .card h3 { margin: 0 0 10px; font-size: 22px; letter-spacing: -.035em; }
-    .card p { color: var(--muted); line-height: 1.56; margin: 0; }
-    .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; margin-bottom: 18px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.11); }
-    .flow { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .flow:before { content: ""; position: absolute; left: 10%; right: 10%; top: 24px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,139,99,.5), transparent); }
-    .step { position: relative; padding-top: 72px; }
-    .step:before { content: attr(data-step); position: absolute; top: 0; left: 24px; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, var(--accent), #ffd19a); color: #170b07; font-weight: 900; box-shadow: 0 14px 36px rgba(255,139,99,.22); }
-    .install-panel { display: grid; grid-template-columns: .86fr 1.14fr; gap: 16px; align-items: stretch; }
-    .install-card { background: linear-gradient(135deg, rgba(255,139,99,.14), rgba(143,216,255,.08)); }
-    .terminal { padding: 0; overflow: hidden; background: #090a0d; }
-    .term-head { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; color: var(--dim); border-bottom: 1px solid rgba(255,255,255,.1); font-size: 13px; }
-    .copy { cursor: pointer; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.08); color: var(--text); border-radius: 999px; padding: 7px 11px; font-weight: 700; }
-    pre { white-space: pre-wrap; word-break: break-word; margin: 0; padding: 22px; color: #d9f6ff; font-size: 14px; line-height: 1.65; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    pre:before { content: "$ "; color: var(--green); }
-    footer { padding: 46px 0 70px; color: var(--dim); border-top: 1px solid var(--line); }
-    footer a { color: var(--muted); text-decoration-color: rgba(255,255,255,.28); text-underline-offset: 4px; }
+    .diagram { margin: 44px auto 0; padding: clamp(16px, 2.5vw, 28px); border-radius: 34px; background: var(--paper); transform: rotate(.15deg); }
+    .window-top { height: 58px; border: 4px solid var(--ink); border-bottom: 0; border-radius: 25px 25px 0 0; background: var(--ink); color: var(--paper); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-family: var(--display); font-size: clamp(18px, 2vw, 29px); }
+    .window-top .mini-brand { display: inline-flex; align-items: center; gap: 10px; }
+    .window-body { border: 4px solid var(--ink); border-radius: 0 0 25px 25px; padding: clamp(18px, 3vw, 38px); }
+    .mock-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: clamp(20px, 4vw, 52px); align-items: center; }
+    .text-field { min-height: 260px; position: relative; border: 4px solid var(--ink); border-radius: 24px; padding: 26px; display: grid; place-items: center; }
+    .field-label { position: absolute; top: -18px; left: 24px; background: var(--paper); padding: 0 10px; font-family: var(--display); font-size: 25px; }
+    .raw-label { position: absolute; bottom: 18px; right: 20px; border: 3px solid var(--ink); border-radius: 999px; padding: 4px 15px 8px; font-family: var(--display); font-size: 24px; transform: rotate(5deg); }
+    .big-caret { width: 16px; height: 132px; border-radius: 999px; background: var(--ink); animation: blink 1.05s infinite; }
+    @keyframes blink { 50% { opacity: .18; } }
+    .arrow-note { position: absolute; font-family: var(--display); font-size: 28px; transform: rotate(-10deg); }
+    .arrow-note.one { left: 38px; top: 52px; }
+    .arrow-note.two { left: 70px; bottom: 54px; }
+    .bubble { position: relative; border: 4px solid var(--ink); border-radius: 34px; padding: clamp(22px, 3vw, 34px); min-height: 230px; display: grid; align-content: center; font-family: var(--display); font-size: clamp(28px, 4vw, 52px); line-height: .95; text-align: left; transform: rotate(-.7deg); }
+    .bubble:after { content: ""; position: absolute; left: 54px; bottom: -31px; width: 44px; height: 44px; background: var(--paper); border-left: 4px solid var(--ink); border-bottom: 4px solid var(--ink); transform: rotate(-24deg); }
+    .polish { margin-top: 26px; justify-self: start; display: inline-block; border: 4px solid var(--ink); border-radius: 14px; padding: 9px 18px 12px; font-family: var(--display); font-size: clamp(22px, 2.5vw, 34px); box-shadow: 4px 4px 0 var(--ink); transform: rotate(1deg); }
+    .flow-line { margin-top: clamp(30px, 4vw, 50px); display: grid; grid-template-columns: .75fr .25fr .8fr .25fr 1fr .25fr .95fr .25fr .9fr; align-items: center; gap: 8px; }
+    .flow-node { min-height: 108px; border: 3px solid var(--ink); border-radius: 20px; display: grid; place-items: center; text-align: center; padding: 12px; font-family: var(--display); font-size: clamp(19px, 2vw, 29px); }
+    .flow-node.keys { grid-template-columns: 1fr; gap: 8px; }
+    .flow-key { display: inline-block; border: 3px solid var(--ink); border-radius: 10px; padding: 3px 10px 7px; min-width: 58px; }
+    .arrow { font-family: var(--display); font-size: 42px; text-align: center; }
+    .doodle { width: 70px; height: 70px; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+    section { padding: clamp(56px, 7vw, 90px) 0; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .feature-card { min-height: 150px; border: 4px solid var(--ink); border-radius: 26px; display: flex; align-items: center; gap: 18px; padding: 22px; font-family: var(--display); font-size: clamp(24px, 2.5vw, 39px); line-height: .98; transform: rotate(-.35deg); background: var(--paper); }
+    .feature-card:nth-child(2) { transform: rotate(.5deg); }
+    .feature-card:nth-child(3) { transform: rotate(-.2deg); }
+    .feature-icon { min-width: 72px; height: 72px; border: 3px solid var(--ink); border-radius: 20px; display: grid; place-items: center; font-family: var(--display); font-size: 42px; }
+
+    .section-title { margin: 0 auto 34px; max-width: 1040px; text-align: center; font-family: var(--display); font-size: clamp(42px, 6.5vw, 94px); line-height: .9; letter-spacing: -.025em; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; align-items: start; }
+    .step { text-align: center; font-family: var(--display); font-size: clamp(25px, 2.5vw, 38px); line-height: .95; }
+    .step-art { height: 130px; display: grid; place-items: center; margin-bottom: 14px; }
+    .step svg { width: 116px; height: 116px; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .step .keys-mini { display: flex; gap: 8px; justify-content: center; align-items: center; }
+    .mini-key { border: 4px solid var(--ink); border-radius: 12px; padding: 10px 14px 14px; font-family: var(--display); font-size: 34px; transform: rotate(-4deg); }
+    .mini-key:nth-child(2) { transform: rotate(5deg); }
+
+    .install { border: 4px solid var(--ink); border-radius: 32px; overflow: hidden; background: var(--paper); transform: rotate(-.18deg); }
+    .install-top { height: 58px; border-bottom: 4px solid var(--ink); display: flex; align-items: center; gap: 10px; padding: 0 20px; }
+    .control { width: 18px; height: 18px; border: 3px solid var(--ink); border-radius: 50%; }
+    .install-body { display: grid; grid-template-columns: .34fr .66fr; min-height: 240px; }
+    .terminal-art { background: var(--ink); color: var(--paper); padding: 26px; display: grid; align-content: center; gap: 18px; }
+    .terminal-line { height: 16px; border-radius: 999px; background: var(--paper); opacity: .96; }
+    .terminal-line:nth-child(1) { width: 42%; }
+    .terminal-line:nth-child(2) { width: 75%; }
+    .terminal-line:nth-child(3) { width: 58%; }
+    .install-copy { padding: clamp(24px, 4vw, 44px); display: grid; gap: 18px; align-content: center; }
+    .install-copy h2 { font-family: var(--display); font-size: clamp(38px, 5.4vw, 80px); line-height: .88; margin: 0; }
+    .install-copy p { font-size: clamp(21px, 2.3vw, 32px); font-weight: 700; margin: 0; }
+    .command { display: flex; align-items: stretch; border: 4px solid var(--ink); border-radius: 18px; overflow: hidden; background: var(--ink); color: var(--paper); }
+    pre { margin: 0; padding: 16px 18px 19px; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; flex: 1; }
+    .copy { border: 0; border-left: 4px solid var(--paper); background: var(--paper); color: var(--ink); padding: 0 18px; font-family: var(--display); font-size: 24px; cursor: pointer; }
+
+    footer { padding: 32px 0 64px; text-align: center; font-family: var(--display); font-size: clamp(20px, 2.2vw, 32px); }
+
     @media (max-width: 900px) {
-      header { position: static; border-radius: 24px; align-items: flex-start; flex-direction: column; }
-      .hero, .install-panel { grid-template-columns: 1fr; min-height: auto; padding-top: 56px; }
-      .feature-grid, .flow { grid-template-columns: 1fr; }
-      .flow:before { display: none; }
-      .section-head { display: block; }
-      .section-head p { margin-top: 12px; }
+      body { font-size: 20px; }
+      header { align-items: flex-start; flex-direction: column; }
+      .nav { width: 100%; justify-content: space-between; gap: 10px; }
+      .mock-grid, .features, .steps, .install-body { grid-template-columns: 1fr; }
+      .flow-line { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      .window-top { height: auto; min-height: 58px; align-items: flex-start; flex-direction: column; justify-content: center; padding: 12px 18px; }
+      .feature-card { min-height: 118px; }
+      .install-body { min-height: auto; }
+      .terminal-art { min-height: 170px; }
     }
-    @media (max-width: 520px) {
-      .wrap, header { width: min(100% - 28px, 1160px); }
-      .nav a { padding: 9px 10px; }
-      h1 { font-size: 46px; }
-      .desktop { padding: 14px; }
-      .doc { padding: 19px; min-height: 250px; }
-      .recorder { margin: -34px 14px 14px; width: calc(100% - 28px); }
+    @media (max-width: 540px) {
+      .wrap, header { width: min(100% - 24px, 1240px); }
+      .nav { font-size: 17px; }
+      .brand { font-size: 31px; }
+      .eyebrow { font-size: 54px; }
+      h1 { font-size: 39px; }
+      .sub { font-size: 23px; }
+      .button { width: 100%; }
+      .diagram { padding: 10px; box-shadow: 4px 4px 0 var(--ink); }
+      .window-body { padding: 15px; }
+      .text-field { min-height: 205px; }
+      .bubble { font-size: 28px; }
+      .command { display: block; }
+      .copy { width: 100%; min-height: 54px; border-left: 0; border-top: 4px solid var(--paper); }
     }
   </style>
 </head>
 <body>
   <header>
-    <a class="brand" href="#top" aria-label="Murmur home"><span class="logo">〰️</span><span>Murmur</span></a>
+    <a class="brand" href="#top" aria-label="Murmur home">
+      <svg viewBox="0 0 100 60" aria-hidden="true"><path d="M8 34 C22 8, 35 54, 50 30 S78 10, 92 35" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      <span>Murmur</span>
+    </a>
     <nav class="nav" aria-label="Main navigation">
       <a href="#why">Why</a>
       <a href="#how">How it works</a>
       <a href="https://github.com/LucianaMa1/murmur">GitHub</a>
-      <a class="install-link" href="#install">Install</a>
+      <a href="#install">Install</a>
     </nav>
   </header>
 
-  <div class="wrap" id="top">
-    <main class="hero">
-      <div>
-        <div class="eyebrow">native macOS dictation</div>
-        <h1>Hold a key. Say it. Get clean text.</h1>
-        <p class="sub">Murmur sits in your menu bar and writes into the app you are already using. Hold <span class="keycap">F5</span> for local raw transcription or <span class="keycap">F6</span> for AI-polished writing, then release to paste.</p>
-        <div class="cta">
-          <a class="button primary" href="#install">Install prototype →</a>
-          <a class="button secondary" href="https://github.com/LucianaMa1/murmur">View source</a>
+  <main id="top" class="wrap">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">native macOS dictation</p>
+      <h1 id="hero-title">Hold a key. Say it. Get clean text.</h1>
+      <p class="sub">Murmur writes into the app you are already using. Hold <span class="keycap-inline">F5</span> for local raw transcription or <span class="keycap-inline">F6</span> for an AI-polished rewrite.</p>
+      <div class="cta">
+        <a class="button" href="#install">Install prototype →</a>
+        <a class="button" href="https://github.com/LucianaMa1/murmur">View source</a>
+      </div>
+      <p class="note">Note: macOS 14+ on Apple Silicon. F6 polish uses your OpenAI API key.</p>
+      <div class="pills" aria-label="Product traits">
+        <span class="pill">menu-bar utility</span>
+        <span class="pill">global hotkeys</span>
+        <span class="pill">editable vocabulary</span>
+      </div>
+    </section>
+
+    <section class="diagram sketch-border" aria-label="Murmur workflow sketch">
+      <div class="window-top">
+        <span class="mini-brand">〰️ Murmur</span>
+        <span>Slack · Notes · Cursor · Gmail</span>
+      </div>
+      <div class="window-body">
+        <div class="mock-grid">
+          <div class="text-field">
+            <span class="field-label">active text field</span>
+            <span class="arrow-note one">↘</span>
+            <span class="big-caret" aria-hidden="true"></span>
+            <span class="arrow-note two">↗</span>
+            <span class="raw-label">raw</span>
+          </div>
+          <div>
+            <div class="bubble">Turn this rambly voice note into a crisp launch update and paste it right here.</div>
+            <div class="polish">Hold F6 to polish</div>
+          </div>
         </div>
-        <p class="note">Prototype for macOS 14+ on Apple Silicon. F5 works locally with Whisper; F6 polish uses your OpenAI API key.</p>
-        <div class="proof" aria-label="Product notes">
-          <span class="pill">menu-bar utility</span>
-          <span class="pill">global hotkeys</span>
-          <span class="pill">editable vocabulary</span>
+        <div class="flow-line" aria-label="voice to text pipeline">
+          <div class="flow-node">
+            <svg class="doodle" viewBox="0 0 80 80" aria-hidden="true"><rect x="28" y="10" width="24" height="42" rx="12"/><path d="M18 36c0 17 10 27 22 27s22-10 22-27"/><path d="M40 63v10M28 73h24"/></svg>
+          </div>
+          <div class="arrow">→</div>
+          <div class="flow-node keys"><span class="flow-key">F5</span><span class="flow-key">raw</span></div>
+          <div class="arrow">→</div>
+          <div class="flow-node">local<br>transcript</div>
+          <div class="arrow">→</div>
+          <div class="flow-node keys"><span class="flow-key">F6</span><span>polish</span></div>
+          <div class="arrow">→</div>
+          <div class="flow-node">
+            <svg class="doodle" viewBox="0 0 80 80" aria-hidden="true"><path d="M20 8h28l14 14v50H20z"/><path d="M48 8v16h14M29 38h24M29 50h20M29 61h14"/></svg>
+            clean rewrite
+          </div>
         </div>
       </div>
+    </section>
 
-      <div class="demo" aria-label="Murmur dictation demo mockup">
-        <div class="screen">
-          <div class="menubar"><span><strong>〰️ Murmur</strong></span><span>Slack · Notes · Cursor · Gmail</span></div>
-          <div class="desktop">
-            <div class="app-window">
-              <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-              <div class="doc">
-                <div class="doc-label">active text field</div>
-                <div class="doc-text">Turn this rambly voice note into a crisp launch update and paste it right here.<span class="cursor"></span></div>
-              </div>
-            </div>
-            <div class="recorder">
-              <div class="rec-top"><strong>Hold F6 to polish</strong><span class="live">recording</span></div>
-              <div class="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-              <div class="modes">
-                <div class="mode"><strong>F5 raw</strong>local transcript</div>
-                <div class="mode"><strong>F6 polish</strong>clean rewrite</div>
-              </div>
+    <section id="why" aria-labelledby="why-title">
+      <h2 id="why-title" class="section-title">Dictation without switching context.</h2>
+      <div class="features">
+        <article class="feature-card"><span class="feature-icon">⌘</span><span>Global hold-to-record</span></article>
+        <article class="feature-card"><span class="feature-icon">✦</span><span>Raw or polished</span></article>
+        <article class="feature-card"><span class="feature-icon">Aa</span><span>Vocabulary you control</span></article>
+      </div>
+    </section>
+
+    <section id="how" aria-labelledby="how-title">
+      <h2 id="how-title" class="section-title">Four seconds from thought to text.</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M28 19l54 34-26 8 13 30-16 7-13-30-20 18z"/><path d="M77 30l16-13M88 52h20M70 16l6-16"/></svg></div>
+          <span>1. Click anywhere</span>
+        </article>
+        <article class="step">
+          <div class="step-art"><div class="keys-mini"><span class="mini-key">F5</span><span class="mini-key">F6</span></div></div>
+          <span>2. Hold F5/F6</span>
+        </article>
+        <article class="step">
+          <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M20 28h80v52H56L36 100V80H20z"/><path d="M38 51h44M38 64h29"/></svg></div>
+          <span>3. Speak naturally</span>
+        </article>
+        <article class="step">
+          <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M22 28h58v46H22z"/><path d="M34 44h34M34 58h25"/><path d="M76 68l25 14-15 5 7 16-10 4-7-16-11 12z"/></svg></div>
+          <span>4. Release to paste</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="install" aria-labelledby="install-title">
+      <div class="install">
+        <div class="install-top"><span class="control"></span><span class="control"></span><span class="control"></span></div>
+        <div class="install-body">
+          <div class="terminal-art" aria-hidden="true"><div class="terminal-line"></div><div class="terminal-line"></div><div class="terminal-line"></div></div>
+          <div class="install-copy">
+            <h2 id="install-title">Install the prototype</h2>
+            <p>Run the installer, grant microphone/input/accessibility permissions, then look for 〰️ in your menu bar.</p>
+            <div class="command">
+              <pre>$ curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash</pre>
+              <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash">Copy</button>
             </div>
           </div>
         </div>
       </div>
-    </main>
-
-    <section id="why">
-      <div class="section-head">
-        <h2>Dictation without switching context.</h2>
-        <p>Designed like a small Mac utility: quiet, fast, and always available exactly where the text belongs.</p>
-      </div>
-      <div class="feature-grid">
-        <article class="card"><div class="icon">⌘</div><h3>Global hold-to-record</h3><p>No separate recorder window. Put your cursor in Slack, Notes, Cursor, Gmail, Linear, or any text field and start talking.</p></article>
-        <article class="card"><div class="icon">✦</div><h3>Raw or polished</h3><p>Use F5 for fast local transcription. Use F6 when the thought needs cleanup before it lands.</p></article>
-        <article class="card"><div class="icon">Aa</div><h3>Vocabulary you control</h3><p>Names, commands, product terms, and jargon live in editable plain-text files, not an opaque database.</p></article>
-      </div>
     </section>
+  </main>
 
-    <section id="how">
-      <div class="section-head">
-        <h2>Four seconds from thought to text.</h2>
-        <p>The flow stays inside your current app, so voice capture feels like typing faster — not opening another tool.</p>
-      </div>
-      <div class="flow">
-        <div class="card step" data-step="1"><h3>Click anywhere</h3><p>Start from the app where the text belongs.</p></div>
-        <div class="card step" data-step="2"><h3>Hold F5/F6</h3><p>Choose raw local dictation or AI-polished output.</p></div>
-        <div class="card step" data-step="3"><h3>Speak naturally</h3><p>Capture the first draft faster than typing.</p></div>
-        <div class="card step" data-step="4"><h3>Release to paste</h3><p>Murmur writes into the active app automatically.</p></div>
-      </div>
-    </section>
+  <footer class="wrap">Built by <a href="https://luciana.digital">Luciana Ma</a>. Open source on <a href="https://github.com/LucianaMa1/murmur">GitHub</a>.</footer>
 
-    <section id="install" class="install-panel">
-      <div class="card install-card">
-        <div class="icon">↓</div>
-        <h3>Install the prototype</h3>
-        <p>Run the installer, grant macOS microphone/input/accessibility permissions, then look for the 〰️ icon in your menu bar.</p>
-      </div>
-      <div class="card terminal">
-        <div class="term-head"><span>Terminal</span><button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash">Copy</button></div>
-        <pre>curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash</pre>
-      </div>
-    </section>
-  </div>
-
-  <footer>
-    <div class="wrap">Built by <a href="https://luciana.digital">Luciana Ma</a>. Open source on <a href="https://github.com/LucianaMa1/murmur">GitHub</a>.</div>
-  </footer>
   <script>
     const copyButton = document.querySelector('[data-copy]');
     if (copyButton) {
