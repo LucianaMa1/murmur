@@ -29,6 +29,8 @@ final class HotkeyManager {
     // MARK: - State
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var globalKeyMonitor: Any?
+    private var globalFlagMonitor: Any?
     private var activeTapCanConsume = false
     private var rawIsDown = false
     private var llmIsDown = false
@@ -36,6 +38,7 @@ final class HotkeyManager {
     // MARK: - Public API
     func start() -> Bool {
         DebugLog.shared.add("Hotkey permission status: listenAccess=\(CGPreflightListenEventAccess())")
+        DebugLog.shared.add("Accessibility permission status: trusted=\(AXIsProcessTrusted())")
         DebugLog.shared.add("Configured hotkeys: raw=\(configuredRawKeyCode()), rewrite=\(configuredLLMKeyCode())")
 
         guard ensurePermission() else {
@@ -49,6 +52,8 @@ final class HotkeyManager {
         let mask = (1 << CGEventType.keyDown.rawValue)
                  | (1 << CGEventType.keyUp.rawValue)
                  | (1 << CGEventType.flagsChanged.rawValue)
+
+        startGlobalMonitors()
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
@@ -92,15 +97,41 @@ final class HotkeyManager {
         if let src = runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetCurrent(), src, .commonModes)
         }
+        if let globalKeyMonitor {
+            NSEvent.removeMonitor(globalKeyMonitor)
+        }
+        if let globalFlagMonitor {
+            NSEvent.removeMonitor(globalFlagMonitor)
+        }
         eventTap = nil
         runLoopSource = nil
+        globalKeyMonitor = nil
+        globalFlagMonitor = nil
     }
 
     // MARK: - Permission
     private func ensurePermission() -> Bool {
+        _ = AXIsProcessTrustedWithOptions([
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ] as CFDictionary)
+
         if CGPreflightListenEventAccess() { return true }
         _ = CGRequestListenEventAccess()
         return CGPreflightListenEventAccess()
+    }
+
+    private func startGlobalMonitors() {
+        if let globalKeyMonitor { NSEvent.removeMonitor(globalKeyMonitor) }
+        if let globalFlagMonitor { NSEvent.removeMonitor(globalFlagMonitor) }
+
+        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            self?.handleGlobalKeyEvent(event)
+        }
+        globalFlagMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
+            self?.handleGlobalFlagsChanged(event)
+        }
+
+        DebugLog.shared.add("NSEvent global hotkey monitors installed")
     }
 
     // MARK: - C callback
@@ -183,6 +214,37 @@ final class HotkeyManager {
         }
     }
 
+    private func handleGlobalKeyEvent(_ event: NSEvent) {
+        let keyCode = Int64(event.keyCode)
+        guard let mode = mode(for: keyCode) else { return }
+
+        let isDown = event.type == .keyDown
+        let autorepeat = event.isARepeat
+        logHotkeyEdge(isDown: isDown, autorepeat: autorepeat, mode: mode, keyCode: keyCode)
+
+        switch mode {
+        case .raw:
+            handleEdge(isDown: isDown, autorepeat: autorepeat, current: &rawIsDown, mode: mode)
+        case .llm:
+            handleEdge(isDown: isDown, autorepeat: autorepeat, current: &llmIsDown, mode: mode)
+        }
+    }
+
+    private func handleGlobalFlagsChanged(_ event: NSEvent) {
+        let keyCode = Int64(event.keyCode)
+        guard let mode = modeForModifierKeyCode(keyCode) else { return }
+
+        let isDown = isModifierPressed(keyCode: keyCode, flags: event.modifierFlags)
+        logHotkeyEdge(isDown: isDown, autorepeat: false, mode: mode, keyCode: keyCode)
+
+        switch mode {
+        case .raw:
+            handleEdge(isDown: isDown, autorepeat: false, current: &rawIsDown, mode: mode)
+        case .llm:
+            handleEdge(isDown: isDown, autorepeat: false, current: &llmIsDown, mode: mode)
+        }
+    }
+
     private func handleModifierFlagsChanged(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         guard let mode = modeForModifierKeyCode(keyCode) else { return Unmanaged.passUnretained(event) }
@@ -212,6 +274,23 @@ final class HotkeyManager {
             return flags.contains(.maskControl)
         case Self.fnKeyCode:
             return flags.contains(.maskSecondaryFn)
+        default:
+            return false
+        }
+    }
+
+    private func isModifierPressed(keyCode: Int64, flags: NSEvent.ModifierFlags) -> Bool {
+        switch keyCode {
+        case 54, 55:
+            return flags.contains(.command)
+        case 56, 60:
+            return flags.contains(.shift)
+        case 58, 61:
+            return flags.contains(.option)
+        case 59, 62:
+            return flags.contains(.control)
+        case Self.fnKeyCode:
+            return flags.contains(.function)
         default:
             return false
         }
