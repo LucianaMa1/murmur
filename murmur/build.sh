@@ -20,6 +20,11 @@ mkdir -p "$PRODUCT_DIR/$APP_BUNDLE/Contents/Resources"
 cp "$BUILD_DIR/$APP_NAME" "$PRODUCT_DIR/$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 cp "Murmur/Info.plist" "$PRODUCT_DIR/$APP_BUNDLE/Contents/Info.plist"
 
+# Copy Murmur-owned app resources such as the app icon.
+if [ -d "Murmur/Resources" ]; then
+  find Murmur/Resources -maxdepth 1 -type f -exec cp {} "$PRODUCT_DIR/$APP_BUNDLE/Contents/Resources/" \;
+fi
+
 # Copy any required resource bundles that SPM produced (WhisperKit ships some).
 find "$BUILD_DIR" -maxdepth 1 -name "*.bundle" -exec cp -R {} "$PRODUCT_DIR/$APP_BUNDLE/Contents/Resources/" \; 2>/dev/null || true
 
