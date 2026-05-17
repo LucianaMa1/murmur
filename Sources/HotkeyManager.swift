@@ -34,17 +34,23 @@ final class HotkeyManager {
     private var activeTapCanConsume = false
     private var rawIsDown = false
     private var llmIsDown = false
+    private var unmatchedEventLogCount = 0
 
     // MARK: - Public API
     func start() -> Bool {
-        DebugLog.shared.add("Hotkey permission status: listenAccess=\(CGPreflightListenEventAccess())")
-        DebugLog.shared.add("Accessibility permission status: trusted=\(AXIsProcessTrusted())")
+        let accessibilityTrusted = AXIsProcessTrusted()
+        let listenAccess = CGPreflightListenEventAccess()
+        DebugLog.shared.add("Hotkey permission status: listenAccess=\(listenAccess)")
+        DebugLog.shared.add("Accessibility permission status: trusted=\(accessibilityTrusted)")
         DebugLog.shared.add("Configured hotkeys: raw=\(configuredRawKeyCode()), rewrite=\(configuredLLMKeyCode())")
 
-        guard ensurePermission() else {
+        promptForPermissionsIfNeeded()
+        startGlobalMonitors()
+
+        guard CGPreflightListenEventAccess() else {
             print("⚠️ Input Monitoring permission required.")
-            DebugLog.shared.add("Input Monitoring permission not granted; hotkeys cannot start")
-            return false
+            DebugLog.shared.add("Input Monitoring permission not granted; CGEventTap disabled, NSEvent fallback remains installed")
+            return globalKeyMonitor != nil || globalFlagMonitor != nil
         }
 
         // Regular keys arrive as keyDown/keyUp. Modifier-only push-to-talk
@@ -52,8 +58,6 @@ final class HotkeyManager {
         let mask = (1 << CGEventType.keyDown.rawValue)
                  | (1 << CGEventType.keyUp.rawValue)
                  | (1 << CGEventType.flagsChanged.rawValue)
-
-        startGlobalMonitors()
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
@@ -110,14 +114,14 @@ final class HotkeyManager {
     }
 
     // MARK: - Permission
-    private func ensurePermission() -> Bool {
+    private func promptForPermissionsIfNeeded() {
         _ = AXIsProcessTrustedWithOptions([
             kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
         ] as CFDictionary)
 
-        if CGPreflightListenEventAccess() { return true }
-        _ = CGRequestListenEventAccess()
-        return CGPreflightListenEventAccess()
+        if !CGPreflightListenEventAccess() {
+            _ = CGRequestListenEventAccess()
+        }
     }
 
     private func startGlobalMonitors() {
@@ -216,7 +220,10 @@ final class HotkeyManager {
 
     private func handleGlobalKeyEvent(_ event: NSEvent) {
         let keyCode = Int64(event.keyCode)
-        guard let mode = mode(for: keyCode) else { return }
+        guard let mode = mode(for: keyCode) else {
+            logUnmatchedEvent(source: "NSEvent", type: event.type == .keyDown ? "down" : "up", keyCode: keyCode)
+            return
+        }
 
         let isDown = event.type == .keyDown
         let autorepeat = event.isARepeat
@@ -232,7 +239,10 @@ final class HotkeyManager {
 
     private func handleGlobalFlagsChanged(_ event: NSEvent) {
         let keyCode = Int64(event.keyCode)
-        guard let mode = modeForModifierKeyCode(keyCode) else { return }
+        guard let mode = modeForModifierKeyCode(keyCode) else {
+            logUnmatchedEvent(source: "NSEvent flags", type: "changed", keyCode: keyCode)
+            return
+        }
 
         let isDown = isModifierPressed(keyCode: keyCode, flags: event.modifierFlags)
         logHotkeyEdge(isDown: isDown, autorepeat: false, mode: mode, keyCode: keyCode)
@@ -301,5 +311,11 @@ final class HotkeyManager {
         let edge = isDown ? "down" : "up"
         let label = mode == .raw ? "raw" : "rewrite"
         DebugLog.shared.add("Hotkey \(edge) matched mode=\(label), keyCode=\(keyCode)")
+    }
+
+    private func logUnmatchedEvent(source: String, type: String, keyCode: Int64) {
+        guard unmatchedEventLogCount < 12 else { return }
+        unmatchedEventLogCount += 1
+        DebugLog.shared.add("Hotkey monitor saw unmatched \(source) \(type), keyCode=\(keyCode)")
     }
 }
