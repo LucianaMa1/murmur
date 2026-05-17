@@ -51,6 +51,9 @@ final class StatusBarController {
         menu.addItem(withTitle: "Show Debug Panel",
                      action: #selector(openDebug),
                      keyEquivalent: "").target = self
+        menu.addItem(withTitle: "Show/Hide Floating Controls",
+                     action: #selector(toggleFloatingControls),
+                     keyEquivalent: "").target = self
         menu.addItem(.separator())
         let aboutItem = NSMenuItem(title: "Hold F5 — transcribe",
                                    action: nil, keyEquivalent: "")
@@ -94,10 +97,11 @@ final class StatusBarController {
 
         pulseTimer?.invalidate()
         pulseTimer = nil
+        button.alphaValue = 1.0
 
         switch state {
         case .idle:
-            button.image = symbol("waveform", color: .secondaryLabelColor)
+            button.image = symbol("waveform.circle", color: .labelColor)
             button.toolTip = "Murmur — idle (hold F5 or F6)"
 
         case .recording(let mode):
@@ -118,7 +122,7 @@ final class StatusBarController {
     }
 
     private func symbol(_ name: String, color: NSColor) -> NSImage? {
-        let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        let config = NSImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
         guard let img = NSImage(systemSymbolName: name, accessibilityDescription: name)?
             .withSymbolConfiguration(config) else { return nil }
 
@@ -165,5 +169,9 @@ final class StatusBarController {
 
     @objc private func openDebug() {
         DebugWindowController.shared.show()
+    }
+
+    @objc private func toggleFloatingControls() {
+        NotificationCenter.default.post(name: .murmurToggleFloatingControls, object: nil)
     }
 }

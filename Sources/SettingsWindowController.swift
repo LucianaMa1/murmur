@@ -40,6 +40,9 @@ struct SettingsView: View {
     @AppStorage("llm_system_prompt") private var prompt: String = OpenAIClient.defaultSystemPrompt
     @AppStorage(HotkeyManager.rawHotkeyDefaultsKey) private var rawHotkeyCode: Int = 96
     @AppStorage(HotkeyManager.llmHotkeyDefaultsKey) private var llmHotkeyCode: Int = 97
+    @AppStorage(FloatingControlsPreferences.enabledKey) private var floatingControlsEnabled: Bool = true
+    @AppStorage(FloatingControlsPreferences.accentKey) private var floatingControlsAccent: String = "mint"
+    @AppStorage(FloatingControlsPreferences.styleKey) private var floatingControlsStyle: String = "glass"
     @State private var apiKey: String = Keychain.read() ?? ""
     @State private var saved: Bool = false
 
@@ -70,6 +73,42 @@ struct SettingsView: View {
                 GroupBox("Behavior") {
                     Toggle("Auto-paste after transcription", isOn: $autoPaste)
                         .padding(.vertical, 4)
+                }
+
+                GroupBox("Floating Controls") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Show floating mouse controls", isOn: $floatingControlsEnabled)
+
+                        HStack {
+                            Text("Accent").frame(width: 80, alignment: .leading)
+                            Picker("", selection: $floatingControlsAccent) {
+                                Text("Mint").tag("mint")
+                                Text("Blue").tag("blue")
+                                Text("Pink").tag("pink")
+                                Text("Amber").tag("amber")
+                                Text("Violet").tag("violet")
+                                Text("Graphite").tag("graphite")
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                        }
+
+                        HStack {
+                            Text("Style").frame(width: 80, alignment: .leading)
+                            Picker("", selection: $floatingControlsStyle) {
+                                Text("Glass").tag("glass")
+                                Text("Dark").tag("dark")
+                                Text("Light").tag("light")
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                        }
+
+                        Text("Use the small x on the floating panel to hide it. Bring it back here or from the menu bar.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
                 }
 
                 GroupBox("Hotkeys") {
@@ -160,6 +199,15 @@ struct SettingsView: View {
             .padding(20)
         }
         .frame(width: 520, height: 600)
+        .onChange(of: floatingControlsEnabled) { _ in
+            NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
+        }
+        .onChange(of: floatingControlsAccent) { _ in
+            NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
+        }
+        .onChange(of: floatingControlsStyle) { _ in
+            NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
+        }
     }
 }
 

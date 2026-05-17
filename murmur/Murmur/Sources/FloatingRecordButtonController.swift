@@ -5,6 +5,41 @@
 
 import AppKit
 
+extension Notification.Name {
+    static let murmurToggleFloatingControls = Notification.Name("murmurToggleFloatingControls")
+    static let murmurFloatingControlsPreferenceChanged = Notification.Name("murmurFloatingControlsPreferenceChanged")
+}
+
+enum FloatingControlsPreferences {
+    static let enabledKey = "floating_controls_enabled"
+    static let accentKey = "floating_controls_accent"
+    static let styleKey = "floating_controls_style"
+
+    static var isEnabled: Bool {
+        if UserDefaults.standard.object(forKey: enabledKey) == nil { return true }
+        return UserDefaults.standard.bool(forKey: enabledKey)
+    }
+
+    static var style: String {
+        UserDefaults.standard.string(forKey: styleKey) ?? "glass"
+    }
+
+    static var accentName: String {
+        UserDefaults.standard.string(forKey: accentKey) ?? "mint"
+    }
+
+    static var accentColor: NSColor {
+        switch accentName {
+        case "blue": return .systemBlue
+        case "pink": return .systemPink
+        case "amber": return .systemOrange
+        case "violet": return .systemPurple
+        case "graphite": return .systemGray
+        default: return .systemMint
+        }
+    }
+}
+
 @MainActor
 final class FloatingRecordButtonController {
     private weak var coordinator: DictationCoordinator?
@@ -16,6 +51,11 @@ final class FloatingRecordButtonController {
     }
 
     func show() {
+        guard FloatingControlsPreferences.isEnabled else {
+            DebugLog.shared.add("Floating controls disabled in settings")
+            return
+        }
+
         if let panel {
             DebugLog.shared.add("Floating controls already exist; bringing them forward")
             panel.orderFrontRegardless()
@@ -28,6 +68,9 @@ final class FloatingRecordButtonController {
         }
         controls.onRelease = { [weak self] mode in
             self?.coordinator?.endMouseDictation(mode: mode)
+        }
+        controls.onClose = { [weak self] in
+            self?.hide(updatePreference: true)
         }
 
         coordinator?.onStateChange = { [weak controls] state in
@@ -54,6 +97,26 @@ final class FloatingRecordButtonController {
         DebugLog.shared.add("Floating controls panel created at x=\(Int(panel.frame.origin.x)), y=\(Int(panel.frame.origin.y))")
     }
 
+    func hide(updatePreference: Bool = false) {
+        panel?.orderOut(nil)
+        panel = nil
+        contentView = nil
+        if updatePreference {
+            UserDefaults.standard.set(false, forKey: FloatingControlsPreferences.enabledKey)
+            NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
+        }
+        DebugLog.shared.add("Floating controls hidden")
+    }
+
+    func toggle() {
+        if panel == nil {
+            UserDefaults.standard.set(true, forKey: FloatingControlsPreferences.enabledKey)
+            show()
+        } else {
+            hide(updatePreference: true)
+        }
+    }
+
     private func defaultFrame(size: NSSize) -> NSRect {
         let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
         return NSRect(
@@ -68,8 +131,10 @@ final class FloatingRecordButtonController {
 private final class FloatingRecordControlsView: NSView {
     var onPress: ((DictationMode) -> Void)?
     var onRelease: ((DictationMode) -> Void)?
+    var onClose: (() -> Void)?
 
     private let statusPill = StatusPill()
+    private let closeButton = NSButton()
     private let rawButton = HoldToRecordButton(
         mode: .raw,
         idleTitle: "Transcribe",
@@ -84,15 +149,25 @@ private final class FloatingRecordControlsView: NSView {
         symbolName: "sparkles",
         idleFill: NSColor.white.withAlphaComponent(0.10)
     )
+    private var defaultsObserver: NSObjectProtocol?
+    private var preferenceObserver: NSObjectProtocol?
+    private var idleStatusColor = FloatingControlsPreferences.accentColor
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         setup()
+        installPreferenceObservers()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setup()
+        installPreferenceObservers()
+    }
+
+    deinit {
+        if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        if let preferenceObserver { NotificationCenter.default.removeObserver(preferenceObserver) }
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -102,7 +177,7 @@ private final class FloatingRecordControlsView: NSView {
     func setState(_ state: DictationCoordinatorState) {
         switch state {
         case .idle:
-            statusPill.set(text: "Murmur ready", color: .systemGreen)
+            statusPill.set(text: "Murmur ready", color: idleStatusColor)
             rawButton.setInteractionEnabled(true)
             rewriteButton.setInteractionEnabled(true)
         case .recording(let mode):
@@ -129,9 +204,7 @@ private final class FloatingRecordControlsView: NSView {
         layer?.cornerRadius = 24
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = false
-        layer?.backgroundColor = NSColor.white.withAlphaComponent(0.11).cgColor
         layer?.borderWidth = 0.5
-        layer?.borderColor = NSColor.white.withAlphaComponent(0.28).cgColor
         layer?.shadowColor = NSColor.black.cgColor
         layer?.shadowOpacity = 0.16
         layer?.shadowRadius = 20
@@ -142,7 +215,14 @@ private final class FloatingRecordControlsView: NSView {
         rewriteButton.onPress = { [weak self] mode in self?.onPress?(mode) }
         rewriteButton.onRelease = { [weak self] mode in self?.onRelease?(mode) }
 
-        for view in [statusPill, rawButton, rewriteButton] {
+        closeButton.isBordered = false
+        closeButton.image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Hide floating controls")
+        closeButton.image?.isTemplate = true
+        closeButton.imagePosition = .imageOnly
+        closeButton.target = self
+        closeButton.action = #selector(closePressed)
+
+        for view in [statusPill, closeButton, rawButton, rewriteButton] {
             view.translatesAutoresizingMaskIntoConstraints = false
             addSubview(view)
         }
@@ -151,6 +231,11 @@ private final class FloatingRecordControlsView: NSView {
             statusPill.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             statusPill.topAnchor.constraint(equalTo: topAnchor, constant: 20),
             statusPill.heightAnchor.constraint(equalToConstant: 26),
+
+            closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            closeButton.centerYAnchor.constraint(equalTo: statusPill.centerYAnchor),
+            closeButton.widthAnchor.constraint(equalToConstant: 22),
+            closeButton.heightAnchor.constraint(equalToConstant: 22),
 
             rawButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
             rawButton.topAnchor.constraint(equalTo: statusPill.bottomAnchor, constant: 14),
@@ -162,6 +247,69 @@ private final class FloatingRecordControlsView: NSView {
             rewriteButton.widthAnchor.constraint(equalToConstant: 125),
             rewriteButton.heightAnchor.constraint(equalToConstant: 44)
         ])
+
+        applyPreferences()
+    }
+
+    @objc private func closePressed() {
+        onClose?()
+    }
+
+    private func installPreferenceObservers() {
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyPreferences()
+        }
+        preferenceObserver = NotificationCenter.default.addObserver(
+            forName: .murmurFloatingControlsPreferenceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyPreferences()
+        }
+    }
+
+    private func applyPreferences() {
+        let accent = FloatingControlsPreferences.accentColor
+        let style = FloatingControlsPreferences.style
+        idleStatusColor = accent
+
+        let panelFill: NSColor
+        let border: NSColor
+        let primaryFill: NSColor
+        let secondaryFill: NSColor
+        let textColor: NSColor
+
+        switch style {
+        case "light":
+            panelFill = NSColor.white.withAlphaComponent(0.72)
+            border = NSColor.white.withAlphaComponent(0.58)
+            primaryFill = accent.withAlphaComponent(0.22)
+            secondaryFill = NSColor.black.withAlphaComponent(0.07)
+            textColor = .labelColor
+        case "dark":
+            panelFill = NSColor.black.withAlphaComponent(0.38)
+            border = NSColor.white.withAlphaComponent(0.18)
+            primaryFill = accent.withAlphaComponent(0.34)
+            secondaryFill = NSColor.white.withAlphaComponent(0.10)
+            textColor = .white
+        default:
+            panelFill = NSColor.white.withAlphaComponent(0.11)
+            border = NSColor.white.withAlphaComponent(0.28)
+            primaryFill = accent.withAlphaComponent(0.26)
+            secondaryFill = NSColor.white.withAlphaComponent(0.10)
+            textColor = .white
+        }
+
+        layer?.backgroundColor = panelFill.cgColor
+        layer?.borderColor = border.cgColor
+        closeButton.contentTintColor = textColor.withAlphaComponent(0.72)
+        rawButton.setIdleAppearance(fill: primaryFill, textColor: textColor)
+        rewriteButton.setIdleAppearance(fill: secondaryFill, textColor: textColor)
+        statusPill.set(text: "Murmur ready", color: accent)
     }
 }
 
@@ -236,7 +384,8 @@ private final class HoldToRecordButton: NSButton {
     private let idleTitle: String
     private let activeTitle: String
     private let symbolName: String
-    private let idleFill: NSColor
+    private var idleFill: NSColor
+    private var idleTextColor = NSColor.white
     private let topHighlightLayer = CALayer()
     private var recording = false
     private var interactionEnabled = true
@@ -302,11 +451,20 @@ private final class HoldToRecordButton: NSButton {
         alphaValue = enabled ? 1.0 : 0.46
     }
 
+    func setIdleAppearance(fill: NSColor, textColor: NSColor) {
+        idleFill = fill
+        idleTextColor = textColor
+        layer?.borderColor = textColor.withAlphaComponent(0.22).cgColor
+        if !recording {
+            configure(title: idleTitle, symbolName: symbolName, fill: idleFill, textColor: idleTextColor)
+        }
+    }
+
     private func startRecording() {
         guard !recording else { return }
         recording = true
         animateScale(0.96)
-        configure(title: activeTitle, symbolName: "waveform", fill: NSColor.systemRed.withAlphaComponent(0.62))
+        configure(title: activeTitle, symbolName: "waveform", fill: NSColor.systemRed.withAlphaComponent(0.62), textColor: .white)
         DebugLog.shared.add("\(idleTitle) button entered recording state")
         onPress?(mode)
     }
@@ -315,21 +473,21 @@ private final class HoldToRecordButton: NSButton {
         guard recording else { return }
         recording = false
         animateScale(1.0)
-        configure(title: idleTitle, symbolName: symbolName, fill: idleFill)
+        configure(title: idleTitle, symbolName: symbolName, fill: idleFill, textColor: idleTextColor)
         DebugLog.shared.add("\(idleTitle) button exited recording state")
         onRelease?(mode)
     }
 
-    private func configure(title: String, symbolName: String, fill: NSColor) {
+    private func configure(title: String, symbolName: String, fill: NSColor, textColor: NSColor = .white) {
         let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: title)
         image?.isTemplate = true
         self.image = image
-        contentTintColor = .white
+        contentTintColor = textColor
         attributedTitle = NSAttributedString(
             string: title,
             attributes: [
                 .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
-                .foregroundColor: NSColor.white
+                .foregroundColor: textColor
             ]
         )
         layer?.backgroundColor = fill.cgColor

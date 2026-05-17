@@ -20,6 +20,7 @@ struct MurmurApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let coordinator = DictationCoordinator()
     private var floatingRecordButton: FloatingRecordButtonController?
+    private var observerTokens: [NSObjectProtocol] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Hide from Dock — pure menu-bar app.
@@ -30,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let floatingRecordButton = FloatingRecordButtonController(coordinator: coordinator)
         floatingRecordButton.show()
         self.floatingRecordButton = floatingRecordButton
+        installFloatingControlObservers()
         DebugLog.shared.add("App launched")
         DebugLog.shared.add("Floating hold-to-speak button shown")
         if ClipboardWriter.ensureAccessibilityPermission() {
@@ -47,6 +49,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        for token in observerTokens {
+            NotificationCenter.default.removeObserver(token)
+        }
         coordinator.stop()
+    }
+
+    private func installFloatingControlObservers() {
+        let toggle = NotificationCenter.default.addObserver(
+            forName: .murmurToggleFloatingControls,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.floatingRecordButton?.toggle()
+            }
+        }
+
+        let preference = NotificationCenter.default.addObserver(
+            forName: .murmurFloatingControlsPreferenceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                if FloatingControlsPreferences.isEnabled {
+                    self?.floatingRecordButton?.show()
+                } else {
+                    self?.floatingRecordButton?.hide()
+                }
+            }
+        }
+
+        observerTokens.append(contentsOf: [toggle, preference])
     }
 }
