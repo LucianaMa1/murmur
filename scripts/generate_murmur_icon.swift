@@ -40,9 +40,9 @@ func drawIcon(size: CGFloat) -> NSImage {
     let basePath = NSBezierPath(roundedRect: baseRect, xRadius: corner, yRadius: corner)
 
     let baseGradient = NSGradient(colors: [
-        color(22, 26, 38),
-        color(38, 47, 66),
-        color(12, 13, 19)
+        color(6, 6, 8),
+        color(30, 30, 34),
+        color(0, 0, 0)
     ])!
     baseGradient.draw(in: basePath, angle: 135)
 
@@ -56,13 +56,13 @@ func drawIcon(size: CGFloat) -> NSImage {
     NSGraphicsContext.saveGraphicsState()
     glowPath.setClip()
     NSGradient(colors: [
-        color(91, 245, 191, 0.52),
-        color(108, 125, 255, 0.22),
+        color(255, 58, 150, 0.46),
+        color(255, 255, 255, 0.16),
         color(255, 255, 255, 0.0)
     ])!.draw(in: glowPath, relativeCenterPosition: NSPoint(x: -0.18, y: 0.12))
     NSGraphicsContext.restoreGraphicsState()
 
-    NSColor.white.withAlphaComponent(0.14).setStroke()
+    NSColor.white.withAlphaComponent(0.24).setStroke()
     basePath.lineWidth = max(1.0, size * 0.012)
     basePath.stroke()
 
@@ -91,11 +91,11 @@ func drawIcon(size: CGFloat) -> NSImage {
 
     NSGraphicsContext.saveGraphicsState()
     NSShadow().apply {
-        $0.shadowColor = color(81, 245, 185, 0.55)
-        $0.shadowBlurRadius = size * 0.035
+        $0.shadowColor = color(255, 58, 150, 0.62)
+        $0.shadowBlurRadius = size * 0.026
         $0.shadowOffset = .zero
     }
-    color(133, 255, 217).setStroke()
+    color(250, 250, 252).setStroke()
     mPath.stroke()
     NSGraphicsContext.restoreGraphicsState()
 
@@ -107,18 +107,18 @@ func drawIcon(size: CGFloat) -> NSImage {
         height: dotDiameter
     )
     let dotGlow = NSBezierPath(ovalIn: dotRect.insetBy(dx: -dotDiameter * 0.42, dy: -dotDiameter * 0.42))
-    color(81, 245, 185, 0.22).setFill()
+    color(255, 58, 150, 0.26).setFill()
     dotGlow.fill()
     let dot = NSBezierPath(ovalIn: dotRect)
-    color(91, 245, 191).setFill()
+    color(255, 58, 150).setFill()
     dot.fill()
-    color(255, 255, 255, 0.55).setStroke()
+    color(255, 255, 255, 0.72).setStroke()
     dot.lineWidth = max(1, size * 0.006)
     dot.stroke()
 
     let shineRect = NSRect(x: baseRect.minX, y: baseRect.midY, width: baseRect.width, height: baseRect.height / 2)
     let shine = NSBezierPath(roundedRect: shineRect, xRadius: corner, yRadius: corner)
-    NSColor.white.withAlphaComponent(0.08).setFill()
+    NSColor.white.withAlphaComponent(0.06).setFill()
     shine.fill()
 
     return image
