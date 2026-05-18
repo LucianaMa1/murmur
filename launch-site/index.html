@@ -67,12 +67,22 @@
     .nav a:hover:after, .nav a:focus-visible:after { content: ""; position: absolute; left: -4px; right: -4px; bottom: -8px; height: 5px; border-radius: 999px; background: var(--ink); }
     a:focus-visible, button:focus-visible { outline: var(--stroke) solid var(--ink); outline-offset: 5px; }
 
-    .hero { text-align: center; padding: clamp(44px, 6vw, 78px) 0 34px; }
-    .eyebrow { margin: 0; font-family: var(--display); font-size: clamp(58px, 10.6vw, 156px); line-height: .83; letter-spacing: -.035em; }
-    h1 { margin: 22px auto 14px; max-width: 1040px; font-family: var(--display); font-size: clamp(38px, 5.8vw, 82px); line-height: .9; letter-spacing: -.02em; }
-    .sub { max-width: 890px; margin: 0 auto; font-size: clamp(24px, 2.9vw, 38px); font-weight: 700; line-height: 1.04; }
-    .keycap-inline { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 0 8px 3px; border: 3px solid var(--ink); border-radius: 10px; font-family: var(--display); line-height: .95; transform: rotate(-1deg); }
-    .cta { margin-top: 28px; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+    .hero { padding: clamp(34px, 4.5vw, 58px) 0 34px; }
+    .hero-panel { border: 4px solid var(--ink); border-radius: 34px; background: var(--paper); box-shadow: 8px 8px 0 var(--ink); padding: clamp(22px, 4vw, 44px); display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(300px, .72fr); gap: clamp(24px, 4vw, 54px); align-items: center; transform: rotate(-.12deg); }
+    .hero-copy { text-align: left; }
+    .hero-side { display: grid; gap: 14px; align-self: stretch; }
+    .chapter { display: inline-flex; width: max-content; align-items: center; gap: 9px; border: 3px solid var(--ink); border-radius: 999px; padding: 7px 14px 10px; font-family: var(--display); font-size: clamp(17px, 1.4vw, 22px); background: var(--ink); color: var(--paper); }
+    .eyebrow { margin: 16px 0 0; font-family: var(--display); font-size: clamp(54px, 8.2vw, 124px); line-height: .86; letter-spacing: -.035em; }
+    h1 { margin: 20px 0 14px; max-width: 850px; font-family: var(--display); font-size: clamp(36px, 4.8vw, 70px); line-height: .92; letter-spacing: -.02em; }
+    .sub { max-width: 790px; margin: 0; font-size: clamp(23px, 2.45vw, 34px); font-weight: 700; line-height: 1.08; }
+    .keycap-inline { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 0 8px 3px; border: 3px solid var(--ink); border-radius: 10px; font-family: var(--display); line-height: .95; transform: rotate(-1deg); background: var(--paper); }
+    .cta { margin-top: 28px; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 16px; }
+    .mini-flow { border: 4px solid var(--ink); border-radius: 26px; padding: 18px; font-family: var(--display); box-shadow: 5px 5px 0 var(--ink); transform: rotate(.8deg); }
+    .mini-flow h2 { margin: 0 0 14px; font-size: clamp(30px, 3.2vw, 48px); line-height: .9; }
+    .mini-step { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; border-top: 3px solid var(--ink); padding: 12px 0; font-size: clamp(20px, 2vw, 29px); line-height: .95; }
+    .mini-num { width: 36px; height: 36px; border: 3px solid var(--ink); border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--paper); }
+    .mini-output { margin-top: 10px; border: 3px solid var(--ink); border-radius: 18px; padding: 13px 15px 18px; font-size: clamp(20px, 2vw, 30px); line-height: .98; background: var(--paper); transform: rotate(-1deg); }
+    .mini-output:before { content: "pasted text"; display: block; width: max-content; border-bottom: 3px solid var(--ink); margin-bottom: 8px; font-size: .78em; }
     .button { display: inline-flex; align-items: center; justify-content: center; min-height: 58px; padding: 11px 22px 14px; border: 4px solid var(--ink); border-radius: 16px; background: var(--paper); text-decoration: none; font-family: var(--display); font-size: clamp(24px, 2.4vw, 34px); box-shadow: 5px 5px 0 var(--ink); transform: rotate(-.6deg); transition: transform .14s ease, box-shadow .14s ease; }
     .button:nth-child(2) { transform: rotate(.7deg); }
     .button:hover { transform: translate(3px, 3px) rotate(0); box-shadow: 2px 2px 0 var(--ink); }
@@ -94,10 +104,11 @@
     .flat-key { min-height: 42px; border: 3px solid var(--ink); border-radius: 11px; background: var(--paper); box-shadow: 4px 5px 0 var(--ink); display: grid; place-items: center; font-family: var(--display); font-size: clamp(13px, 1.3vw, 18px); }
     .fn-key { position: absolute; left: 18%; bottom: 11%; width: clamp(116px, 16vw, 185px); height: clamp(78px, 10vw, 118px); border: 5px solid var(--ink); border-radius: 22px; background: var(--paper); box-shadow: 11px 15px 0 var(--ink); transform: rotateX(57deg) rotateZ(-9deg) skewX(-8deg) translateY(14px); transform-origin: center bottom; display: grid; place-items: center; font-family: var(--display); font-size: clamp(38px, 6vw, 78px); z-index: 4; }
     .fn-key:after { content: "press + hold"; position: absolute; left: 100%; top: -18px; margin-left: 12px; font-size: clamp(18px, 2vw, 28px); white-space: nowrap; transform: skewX(8deg) rotateZ(4deg); }
-    .finger { position: absolute; left: 20%; bottom: 32%; width: clamp(86px, 10vw, 126px); height: clamp(178px, 20vw, 260px); border: 5px solid var(--ink); border-radius: 999px 999px 34px 34px; background: var(--paper); transform: rotate(21deg) skewY(-4deg); z-index: 7; box-shadow: 7px 7px 0 var(--ink); }
-    .finger:before { content: ""; position: absolute; left: 17%; top: 10%; width: 66%; height: 24%; border: 3px solid var(--ink); border-radius: 999px; }
-    .finger:after { content: ""; position: absolute; right: -28%; bottom: 6%; width: 54%; height: 33%; border: 5px solid var(--ink); border-left: 0; border-radius: 0 999px 999px 0; background: var(--paper); }
-    .press-lines { position: absolute; left: 13%; bottom: 57%; font-family: var(--display); font-size: clamp(34px, 5vw, 64px); transform: rotate(-18deg); z-index: 8; }
+    .fingertip { position: absolute; left: 18%; bottom: 27%; width: clamp(76px, 9vw, 112px); height: clamp(112px, 13vw, 168px); border: 5px solid var(--ink); border-radius: 52% 52% 40% 40%; background: var(--paper); transform: rotate(12deg) skewY(-5deg); z-index: 7; box-shadow: 7px 8px 0 var(--ink); }
+    .fingertip:before { content: ""; position: absolute; left: 21%; top: 14%; width: 58%; height: 29%; border: 3px solid var(--ink); border-radius: 999px; }
+    .fingertip:after { content: ""; position: absolute; left: 34%; bottom: -18%; width: 32%; height: 22%; border-left: 5px solid var(--ink); border-right: 5px solid var(--ink); background: var(--paper); }
+    .contact-shadow { position: absolute; left: 16%; bottom: 21%; width: clamp(118px, 15vw, 190px); height: 28px; border: 4px solid var(--ink); border-radius: 999px; background: var(--ink); z-index: 5; transform: rotate(-9deg) skewX(-8deg); }
+    .press-lines { position: absolute; left: 10%; bottom: 49%; font-family: var(--display); font-size: clamp(30px, 4.3vw, 54px); transform: rotate(-18deg); z-index: 8; }
     .voice-path { position: absolute; left: 40%; top: 6%; right: 1%; height: 45%; z-index: 6; }
     .voice-path svg { width: 100%; height: 100%; overflow: visible; }
     .voice-path path, .voice-path circle { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: var(--paper); }
@@ -106,7 +117,7 @@
     .mode-card { border: 4px solid var(--ink); border-radius: 26px; background: var(--paper); padding: clamp(18px, 2.6vw, 28px); font-family: var(--display); transform: rotate(-.8deg); box-shadow: 6px 6px 0 var(--ink); }
     .mode-card:nth-child(2) { transform: rotate(.8deg); }
     .mode-card .label { display: inline-flex; border: 3px solid var(--ink); border-radius: 12px; padding: 4px 12px 8px; margin-bottom: 14px; font-size: clamp(24px, 3vw, 42px); }
-    .mode-card p { margin: 0; font-size: clamp(29px, 4vw, 54px); line-height: .93; }
+    .mode-card p { margin: 0; font-size: clamp(25px, 3.1vw, 42px); line-height: .98; }
     .doodle { width: 70px; height: 70px; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 
     section { padding: clamp(56px, 7vw, 90px) 0; }
@@ -147,7 +158,11 @@
       body { font-size: 20px; }
       header { align-items: flex-start; flex-direction: column; }
       .nav { width: 100%; justify-content: space-between; gap: 10px; }
-      .perspective-scene, .features, .steps, .install-body { grid-template-columns: 1fr; }
+      .hero-panel, .perspective-scene, .features, .steps, .install-body { grid-template-columns: 1fr; }
+      .hero-copy { text-align: center; }
+      .chapter { margin: 0 auto; }
+      .cta { justify-content: center; }
+      .sub { margin: 0 auto; }
       .keyboard-stage { min-height: 430px; }
       .window-top { height: auto; min-height: 58px; align-items: flex-start; flex-direction: column; justify-content: center; padding: 12px 18px; }
       .feature-card { min-height: 118px; }
@@ -159,7 +174,7 @@
       .nav { font-size: 15px; }
       .brand { font-size: 25px; }
       .brand svg { width: 34px; height: 23px; }
-      .eyebrow { font-size: 54px; }
+      .eyebrow { font-size: 48px; }
       h1 { font-size: 39px; }
       .sub { font-size: 23px; }
       .button { width: 100%; }
@@ -169,7 +184,7 @@
       .key-row { gap: 6px; left: 8%; right: 5%; }
       .flat-key { min-height: 31px; font-size: 12px; border-width: 2px; }
       .voice-label { right: 0; top: 7%; }
-      .mode-card p { font-size: 29px; }
+      .mode-card p { font-size: 26px; }
       .command { display: block; }
       .copy { width: 100%; min-height: 54px; border-left: 0; border-top: 4px solid var(--paper); }
     }
@@ -191,18 +206,32 @@
 
   <main id="top" class="wrap">
     <section class="hero" aria-labelledby="hero-title">
-      <p class="eyebrow">native macOS dictation</p>
-      <h1 id="hero-title">Hold a key. Say it. Get clean text.</h1>
-      <p class="sub">Murmur writes into the app you are already using. Hold <span class="keycap-inline">F5</span> for local raw transcription or <span class="keycap-inline">F6</span> for an AI-polished rewrite.</p>
-      <div class="cta">
-        <a class="button" href="#install">Install prototype →</a>
-        <a class="button" href="https://github.com/LucianaMa1/murmur">View source</a>
-      </div>
-      <p class="note">Note: macOS 14+ on Apple Silicon. F6 polish uses your OpenAI API key.</p>
-      <div class="pills" aria-label="Product traits">
-        <span class="pill">menu-bar utility</span>
-        <span class="pill">global hotkeys</span>
-        <span class="pill">editable vocabulary</span>
+      <div class="hero-panel">
+        <div class="hero-copy">
+          <span class="chapter">01 · tiny Mac utility</span>
+          <p class="eyebrow">native macOS dictation</p>
+          <h1 id="hero-title">Hold a key. Say it. Get clean text.</h1>
+          <p class="sub">Murmur writes into the app you are already using. Hold <span class="keycap-inline">F5</span> for local raw transcription or <span class="keycap-inline">F6</span> for an AI-polished rewrite.</p>
+          <div class="cta">
+            <a class="button" href="#install">Install prototype →</a>
+            <a class="button" href="https://github.com/LucianaMa1/murmur">View source</a>
+          </div>
+          <p class="note">Note: macOS 14+ on Apple Silicon. F6 polish uses your OpenAI API key.</p>
+          <div class="pills" aria-label="Product traits">
+            <span class="pill">menu-bar utility</span>
+            <span class="pill">global hotkeys</span>
+            <span class="pill">editable vocabulary</span>
+          </div>
+        </div>
+        <aside class="hero-side" aria-label="Murmur quick flow">
+          <div class="mini-flow">
+            <h2>what happens?</h2>
+            <div class="mini-step"><span class="mini-num">1</span><span>press a Fn-row hotkey</span></div>
+            <div class="mini-step"><span class="mini-num">2</span><span>speak naturally</span></div>
+            <div class="mini-step"><span class="mini-num">3</span><span>text lands where your cursor is</span></div>
+            <div class="mini-output">clean launch update appears here▌</div>
+          </div>
+        </aside>
       </div>
     </section>
 
@@ -222,7 +251,8 @@
               <span class="flat-key">tab</span><span class="flat-key">Q</span><span class="flat-key">W</span><span class="flat-key">E</span><span class="flat-key">R</span><span class="flat-key">T</span><span class="flat-key">Y</span>
             </div>
             <div class="fn-key">Fn</div>
-            <div class="finger" aria-hidden="true"></div>
+            <div class="contact-shadow" aria-hidden="true"></div>
+            <div class="fingertip" aria-hidden="true"></div>
             <div class="press-lines" aria-hidden="true">)))</div>
             <div class="voice-path" aria-hidden="true">
               <svg viewBox="0 0 420 220">
