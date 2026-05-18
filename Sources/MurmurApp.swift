@@ -40,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DebugLog.shared.add("Accessibility permission is not trusted; enable Murmur in System Settings")
         }
 
-        // First launch: show settings if no API key yet (so F6 actually works).
+        // First launch: show settings if no API key yet (so rewrite mode works).
         if Keychain.read() == nil {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 SettingsWindowController.shared.show()

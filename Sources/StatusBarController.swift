@@ -55,11 +55,11 @@ final class StatusBarController {
                      action: #selector(toggleFloatingControls),
                      keyEquivalent: "").target = self
         menu.addItem(.separator())
-        let aboutItem = NSMenuItem(title: "Hold F5 — transcribe",
+        let aboutItem = NSMenuItem(title: "Hold Fn — transcribe",
                                    action: nil, keyEquivalent: "")
         aboutItem.isEnabled = false
         menu.addItem(aboutItem)
-        let llmItem = NSMenuItem(title: "Hold F6 — transcribe + polish",
+        let llmItem = NSMenuItem(title: "Hold Fn + Control — rewrite",
                                  action: nil, keyEquivalent: "")
         llmItem.isEnabled = false
         menu.addItem(llmItem)
@@ -102,7 +102,7 @@ final class StatusBarController {
         switch state {
         case .idle:
             button.image = symbol("waveform.circle", color: .labelColor)
-            button.toolTip = "Murmur — idle (hold F5 or F6)"
+            button.toolTip = "Murmur — idle (hold Fn or Fn + Control)"
 
         case .recording(let mode):
             let color: NSColor = (mode == .raw) ? .systemRed : .systemPurple

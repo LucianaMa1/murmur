@@ -2,14 +2,14 @@
 
 > *Hold a key. Speak quietly. Watch your words appear.*
 
-A voice keyboard for macOS. Hold F5 anywhere on your system, speak, release — your transcribed words appear at the cursor. Hold F6 instead to additionally route the transcript through GPT for light polishing (filler words, punctuation, jargon corrections).
+A voice keyboard for macOS. Hold Fn anywhere on your system, speak, release — your transcribed words appear at the cursor. Hold Fn + Control instead to additionally route the transcript through GPT for light polishing, rewriting, prompt shaping, punctuation, and jargon corrections.
 
 ```
-hold F5  →  speak  →  release  →  raw text appears at your cursor
-hold F6  →  speak  →  release  →  polished text appears at your cursor
+hold Fn            →  speak  →  release  →  raw text appears at your cursor
+hold Fn + Control  →  speak  →  release  →  polished text appears at your cursor
 ```
 
-Powered by [WhisperKit] running on the Apple Neural Engine — your audio never leaves your device. F6 sends only the transcribed text (not audio) to OpenAI for polishing.
+Powered by [WhisperKit] running on the Apple Neural Engine — your audio never leaves your device. Rewrite mode sends only the transcribed text, not audio, to OpenAI for polishing.
 
 **Murmur is a tool, not a transcription studio.** It doesn't manage files, save history, identify speakers, or chat with your transcripts. It does one thing — turn held-key + voice into text at the cursor — and stays out of your way the rest of the time.
 
@@ -42,12 +42,12 @@ Murmur needs three permissions — macOS will prompt for each:
 | Permission | Why | Where to grant |
 |---|---|---|
 | **Microphone** | Capture your voice | First launch prompt |
-| **Input Monitoring** | Listen for F5/F6 globally | System Settings → Privacy & Security → Input Monitoring |
+| **Input Monitoring** | Listen for Fn / Fn + Control globally | System Settings → Privacy & Security → Input Monitoring |
 | **Accessibility** | Paste text into the active app | System Settings → Privacy & Security → Accessibility |
 
 After granting Input Monitoring or Accessibility, **quit and relaunch the app** — macOS doesn't apply TCC changes to running processes.
 
-Then click the menu bar icon → **Settings** → paste your OpenAI API key (only required if you want F6 polishing; F5 works offline forever).
+Then click the menu bar icon → **Settings** → paste your OpenAI API key. It is only required for Fn + Control polishing; Fn raw transcription works offline.
 
 ---
 
@@ -55,8 +55,8 @@ Then click the menu bar icon → **Settings** → paste your OpenAI API key (onl
 
 | Hotkey | What it does |
 |---|---|
-| Hold **F5** | Records, transcribes locally with Whisper, pastes the raw text |
-| Hold **F6** | Records, transcribes, sends to GPT for polish, pastes the polished text |
+| Hold **Fn** | Records, transcribes locally with Whisper, pastes the raw text |
+| Hold **Fn + Control** | Records, transcribes, sends to GPT for rewrite/polish, pastes the polished text |
 
 Both keys work the same way: hold to record, release to process. There's no toggle — your finger on the key is the recording indicator.
 
@@ -65,17 +65,37 @@ The menu bar icon shows what's happening:
 | Icon | State |
 |---|---|
 | 〰️ gray | Idle |
-| 🔴 pulsing | Recording (F5 — raw mode) |
-| 🟣 pulsing | Recording (F6 — polish mode) |
+| 🔴 pulsing | Recording (Fn — raw mode) |
+| 🟣 pulsing | Recording (Fn + Control — rewrite mode) |
 | 🔵 cycling | Transcribing or calling GPT |
 | 🟠 warning | Error (hover the icon for details) |
+
+## Why Murmur
+
+Murmur is for the moments when typing is the bottleneck: the Slack reply you can say in five seconds, the email you keep rewriting, the bug note full of jargon, or the AI prompt that starts messy but needs to land clearly.
+
+### Three Things It Makes Better
+
+- **Capture thoughts before they disappear.** Hold Fn, speak naturally, release, and the words land in the field you were already using. There is no transcript inbox to clean up later.
+- **Turn rough speech into usable writing.** Hold Fn + Control when you want Murmur to rewrite with your saved prompt, so a rambling spoken note can become a polished email, task, reply, or prompt.
+- **Keep control of your workflow.** Raw dictation runs locally, polish mode sends text only, auto-paste restores your clipboard, and vocabulary files stay plain-text so your names, commands, and domain terms remain inspectable.
+
+### Who It Helps
+
+- **Founders and operators** who need to answer customers, teammates, and investors without losing momentum.
+- **Builders and technical teams** who dictate commands, tickets, changelogs, and jargon-heavy notes that generic dictation tends to mishear.
+- **Creators and students** who want a quiet way to capture drafts, outlines, reflections, and ideas without opening a separate writing surface.
+
+### Positioning
+
+Murmur is not a meeting transcription suite, call recorder, or notes database. It is a lightweight voice keyboard: a faster way to put words exactly where your cursor already is, with optional AI polish when the first spoken version needs refinement.
 
 ---
 
 ## How it works
 
 ```
-F5/F6 pressed
+Fn or Fn+Control pressed
     │
     ▼
 ┌──────────────────┐
@@ -89,7 +109,7 @@ F5/F6 pressed
          │
     ┌────┴────┐
     │         │
-   F5        F6
+   Fn     Fn+Control
     │         ▼
     │   ┌─────────────────┐
     │   │ OpenAI API      │  Polish transcript (text only —
@@ -107,11 +127,11 @@ F5/F6 pressed
 
 A few design decisions worth calling out:
 
-- **F5 is fully local.** No API key required, no network needed. Useful when you want privacy or are working offline.
-- **F6 is opt-in cloud.** Only the transcribed *text* is sent to OpenAI — never the audio. The polish prompt is fully customizable in Settings.
+- **Fn is fully local.** No API key required, no network needed. Useful when you want privacy or are working offline.
+- **Fn + Control is opt-in cloud.** Only the transcribed *text* is sent to OpenAI — never the audio. The polish prompt is fully customizable in Settings.
 - **Clipboard restoration.** After auto-paste, your previous clipboard contents are restored, so dictation doesn't clobber what you copied earlier. (Same approach Raycast and Superwhisper take.)
 - **Hold-to-talk.** No accidental activation, no end-of-speech detection latency. Your finger on the key is the start/stop signal.
-- **CGEventTap at HID level.** Murmur intercepts F5/F6 before any other listener sees them, including macOS's own dictation shortcut on F5. While Murmur is running, those keys belong to it.
+- **CGEventTap at HID level.** Murmur listens for Fn and Fn + Control before most app-level shortcuts. macOS may still reserve some Fn behavior depending on keyboard settings, so the floating buttons remain available as a mouse-first fallback.
 
 ---
 
@@ -139,7 +159,7 @@ Models download automatically on first use to `~/Library/Application Support/`.
 
 ## Teaching Murmur your jargon
 
-Whisper sometimes mishears technical terms. "kubectl" becomes "cubicle". "k8s" becomes "k aids". Your colleague's name becomes a different name. The fix is a vocabulary file Murmur reads on every F6 polish.
+Whisper sometimes mishears technical terms. "kubectl" becomes "cubicle". "k8s" becomes "k aids". Your colleague's name becomes a different name. The fix is a vocabulary file Murmur reads on every Fn + Control polish.
 
 **The file lives at `~/.murmur/vocabulary.txt`** and looks like this:
 
@@ -158,13 +178,13 @@ cubicle => kubectl
 k aids  => k8s
 ```
 
-Edit it from the menu bar (`Edit Vocabulary…`) or directly in any editor. Every entry gets injected into the F6 polish prompt as authoritative spelling — Whisper still does the raw transcription, but the LLM corrects mishearings using your list.
+Edit it from the menu bar (`Edit Vocabulary…`) or directly in any editor. Every entry gets injected into the rewrite prompt as authoritative spelling — Whisper still does the raw transcription, but the LLM corrects mishearings using your list.
 
 This works because LLMs have huge context windows (the prompt holds hundreds of terms easily) and actually understand context — they know "deploy to the cubicle cluster" makes no sense and your vocabulary explains what you actually meant.
 
 ### Optional: learn from corrections
 
-In Settings, enable **Learn from corrections**. When you use F6 and the LLM makes a non-trivial substitution (like `cubicle → kubectl`), Murmur appends it to `~/.murmur/learned.txt`.
+In Settings, enable **Learn from corrections**. When you use Fn + Control and the LLM makes a non-trivial substitution (like `cubicle → kubectl`), Murmur appends it to `~/.murmur/learned.txt`.
 
 That file is plain text. You can read it, edit it, version-control it, sync it across machines, or wipe it whenever you like. Murmur won't ever surprise you with what it has learned — the answer is always one `cat ~/.murmur/learned.txt` away.
 
@@ -197,7 +217,7 @@ murmur/
     ├── Info.plist                 # Bundle metadata + permission strings
     └── Sources/
         ├── MurmurApp.swift                # @main, AppDelegate
-        ├── HotkeyManager.swift            # F5/F6 via CGEventTap
+        ├── HotkeyManager.swift            # Fn/Fn+Control via CGEventTap
         ├── AudioRecorder.swift            # AVAudioEngine → 16kHz WAV
         ├── Transcriber.swift              # WhisperKit wrapper
         ├── OpenAIClient.swift             # /v1/chat/completions
@@ -213,13 +233,13 @@ murmur/
 
 **The menu bar icon doesn't appear.** Make sure you granted Input Monitoring permission and **relaunched** the app afterwards. Check Console.app for "Failed to create CGEventTap" messages.
 
-**F5/F6 do nothing.** Check the menu bar icon — does it turn red/purple when you hold the key? If not, Input Monitoring isn't granted. If yes but no text appears, Accessibility isn't granted (paste is blocked).
+**Fn / Fn + Control do nothing.** Check the menu bar icon — does it turn red/purple when you hold the key? If not, Input Monitoring isn't granted. If yes but no text appears, Accessibility isn't granted (paste is blocked). If macOS still catches Fn first, use the floating Transcribe and Rewrite buttons.
 
-**"OpenAI API key not set" error on F6.** Open Settings from the menu bar icon and paste your key. F5 doesn't need a key.
+**"OpenAI API key not set" error on rewrite.** Open Settings from the menu bar icon and paste your key. Fn raw transcription doesn't need a key.
 
 **Audio is empty / nothing transcribed.** Microphone permission may have been denied. Check System Settings → Privacy & Security → Microphone.
 
-**F5 conflicts with another app's shortcut.** Murmur consumes F5/F6 system-wide while running, so other apps won't see them. Quit Murmur from the menu bar to restore them.
+**Fn conflicts with macOS keyboard behavior.** Some Mac keyboard settings reserve Fn/Globe behavior before apps can consume it. Murmur still offers floating Transcribe and Rewrite buttons so you can trigger both modes with the mouse.
 
 ---
 

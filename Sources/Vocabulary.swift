@@ -14,7 +14,7 @@
 //   2. Learned vocabulary  (~/.murmur/learned.txt)
 //      Auto-populated when "Learn from corrections" is enabled.
 //      Format: same as above. Murmur appends entries when the LLM makes a
-//      non-trivial correction during F6 polishing.
+//      non-trivial correction during rewrite polishing.
 //      The user can open this file at any time to inspect, edit, or wipe it.
 //
 //  Both files are plain text. No database, no opaque format. The user can
@@ -117,7 +117,7 @@ final class Vocabulary {
 
     // MARK: - Settings
 
-    /// Whether F6 should record automatic corrections to learned.txt.
+    /// Whether rewrite mode should record automatic corrections to learned.txt.
     /// Defaults to FALSE — auto-learning is opt-in. (Privacy default.)
     var learnEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: "vocab_learn_enabled") }

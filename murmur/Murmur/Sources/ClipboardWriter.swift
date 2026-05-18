@@ -36,7 +36,7 @@ enum ClipboardWriter {
         let pasteDelay: TimeInterval
         if let targetApp {
             DebugLog.shared.add("Activating target app before paste: \(targetApp.localizedName ?? targetApp.bundleIdentifier ?? "<unknown>")")
-            targetApp.activate(options: [.activateIgnoringOtherApps])
+            targetApp.activate(options: [])
             pasteDelay = 0.18
         } else {
             pasteDelay = 0.05

@@ -38,8 +38,6 @@ struct SettingsView: View {
     @AppStorage("auto_paste") private var autoPaste: Bool = true
     @AppStorage("vocab_learn_enabled") private var learnEnabled: Bool = false
     @AppStorage("llm_system_prompt") private var prompt: String = OpenAIClient.defaultSystemPrompt
-    @AppStorage(HotkeyManager.rawHotkeyDefaultsKey) private var rawHotkeyCode: Int = 96
-    @AppStorage(HotkeyManager.llmHotkeyDefaultsKey) private var llmHotkeyCode: Int = 97
     @AppStorage(FloatingControlsPreferences.enabledKey) private var floatingControlsEnabled: Bool = true
     @AppStorage(FloatingControlsPreferences.accentKey) private var floatingControlsAccent: String = "mint"
     @AppStorage(FloatingControlsPreferences.styleKey) private var floatingControlsStyle: String = "glass"
@@ -113,25 +111,22 @@ struct SettingsView: View {
 
                 GroupBox("Hotkeys") {
                     VStack(alignment: .leading, spacing: 10) {
-                        HotkeySettingRow(title: "Raw transcription", keyCode: $rawHotkeyCode)
-                        HotkeySettingRow(title: "Polished transcription", keyCode: $llmHotkeyCode)
-
-                        if rawHotkeyCode == llmHotkeyCode {
-                            Text("Choose two different keys so Murmur knows which mode to use.")
-                                .font(.caption)
-                                .foregroundColor(.red)
+                        HStack {
+                            Text("Transcribe").frame(width: 120, alignment: .leading)
+                            Text("Hold Fn")
+                                .font(.body.weight(.semibold))
                         }
 
-                        Text("Click a field, then press any push-to-talk key: Fn, Control, Option, Shift, Command, F-keys, letters, Space, or arrows.")
+                        HStack {
+                            Text("Rewrite").frame(width: 120, alignment: .leading)
+                            Text("Hold Fn + Control")
+                                .font(.body.weight(.semibold))
+                        }
+
+                        Text("Murmur uses fixed push-to-talk keys so the two modes stay predictable across apps. If Fn is intercepted by macOS, keep the floating Transcribe and Rewrite buttons enabled.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
-
-                        Button("Reset Hotkeys") {
-                            rawHotkeyCode = 96
-                            llmHotkeyCode = 97
-                        }
-                        .font(.caption)
                     }
                     .padding(.vertical, 4)
                 }
@@ -199,159 +194,16 @@ struct SettingsView: View {
             .padding(20)
         }
         .frame(width: 520, height: 600)
-        .onChange(of: floatingControlsEnabled) { _ in
+        .onChange(of: floatingControlsEnabled) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
         }
-        .onChange(of: floatingControlsAccent) { _ in
+        .onChange(of: floatingControlsAccent) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
         }
-        .onChange(of: floatingControlsStyle) { _ in
+        .onChange(of: floatingControlsStyle) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
         }
     }
-}
-
-private struct HotkeySettingRow: View {
-    let title: String
-    @Binding var keyCode: Int
-
-    var body: some View {
-        HStack {
-            Text(title).frame(width: 150, alignment: .leading)
-            HotkeyRecorder(keyCode: $keyCode)
-                .frame(width: 170, height: 28)
-            Text("Hold to record")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-    }
-}
-
-private struct HotkeyRecorder: NSViewRepresentable {
-    @Binding var keyCode: Int
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(keyCode: $keyCode)
-    }
-
-    func makeNSView(context: Context) -> HotkeyCaptureButton {
-        let button = HotkeyCaptureButton()
-        button.bezelStyle = .rounded
-        button.setButtonType(.momentaryPushIn)
-        button.target = context.coordinator
-        button.action = #selector(Coordinator.startRecording(_:))
-        button.coordinator = context.coordinator
-        context.coordinator.button = button
-        context.coordinator.update(keyCode: keyCode)
-        return button
-    }
-
-    func updateNSView(_ nsView: HotkeyCaptureButton, context: Context) {
-        context.coordinator.keyCode = $keyCode
-        context.coordinator.button = nsView
-        nsView.coordinator = context.coordinator
-        context.coordinator.update(keyCode: keyCode)
-    }
-
-    final class Coordinator: NSObject {
-        var keyCode: Binding<Int>
-        weak var button: HotkeyCaptureButton?
-        private var isRecording = false
-
-        init(keyCode: Binding<Int>) {
-            self.keyCode = keyCode
-        }
-
-        @objc func startRecording(_ sender: HotkeyCaptureButton) {
-            isRecording = true
-            sender.isRecording = true
-            sender.title = "Press a key..."
-            sender.window?.makeFirstResponder(sender)
-        }
-
-        func capture(event: NSEvent) {
-            guard isRecording else { return }
-
-            if event.keyCode != 53 {
-                keyCode.wrappedValue = Int(event.keyCode)
-            }
-
-            isRecording = false
-            button?.isRecording = false
-            button?.title = HotkeyNames.displayName(for: keyCode.wrappedValue)
-        }
-
-        func update(keyCode: Int) {
-            guard !isRecording else { return }
-            button?.title = HotkeyNames.displayName(for: keyCode)
-        }
-
-        func captureModifier(event: NSEvent) {
-            guard isRecording else { return }
-
-            let captured = Int(event.keyCode)
-            guard HotkeyNames.isSupportedModifier(captured) else { return }
-
-            keyCode.wrappedValue = captured
-            isRecording = false
-            button?.isRecording = false
-            button?.title = HotkeyNames.displayName(for: keyCode.wrappedValue)
-        }
-    }
-}
-
-private final class HotkeyCaptureButton: NSButton {
-    weak var coordinator: HotkeyRecorder.Coordinator?
-    var isRecording = false
-
-    override var acceptsFirstResponder: Bool { true }
-
-    override func keyDown(with event: NSEvent) {
-        if isRecording {
-            coordinator?.capture(event: event)
-        } else {
-            super.keyDown(with: event)
-        }
-    }
-
-    override func flagsChanged(with event: NSEvent) {
-        if isRecording {
-            coordinator?.captureModifier(event: event)
-        } else {
-            super.flagsChanged(with: event)
-        }
-    }
-}
-
-private enum HotkeyNames {
-    static func isSupportedModifier(_ keyCode: Int) -> Bool {
-        supportedModifiers.contains(keyCode)
-    }
-
-    static func displayName(for keyCode: Int) -> String {
-        names[keyCode] ?? "Key \(keyCode)"
-    }
-
-    private static let supportedModifiers: Set<Int> = [54, 55, 56, 58, 59, 60, 61, 62, 63]
-
-    private static let names: [Int: String] = [
-        0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X",
-        8: "C", 9: "V", 11: "B", 12: "Q", 13: "W", 14: "E", 15: "R",
-        16: "Y", 17: "T", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
-        23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
-        30: "]", 31: "O", 32: "U", 33: "[", 34: "I", 35: "P", 36: "Return",
-        37: "L", 38: "J", 39: "'", 40: "K", 41: ";", 42: "\\", 43: ",",
-        44: "/", 45: "N", 46: "M", 47: ".", 48: "Tab", 49: "Space",
-        50: "`", 51: "Delete", 53: "Esc", 54: "Right Command", 55: "Command",
-        56: "Shift", 58: "Option", 59: "Control", 60: "Right Shift",
-        61: "Right Option", 62: "Right Control", 63: "Fn", 96: "F5", 97: "F6", 98: "F7",
-        99: "F3", 100: "F8", 101: "F9", 103: "F11", 105: "F13",
-        107: "F14", 109: "F10", 111: "F12", 113: "F15", 114: "Help",
-        115: "Home", 116: "Page Up", 117: "Forward Delete", 118: "F4",
-        119: "End", 120: "F2", 121: "Page Down", 122: "F1", 123: "Left",
-        124: "Right", 125: "Down", 126: "Up"
-    ]
 }
 
 // MARK: - Keychain wrapper

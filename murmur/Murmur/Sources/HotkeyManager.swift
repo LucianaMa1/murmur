@@ -1,7 +1,7 @@
 //
 //  HotkeyManager.swift
-//  Listens for configurable hold-to-record hotkeys.
-//  Uses CGEventTap at HID level to override system defaults (e.g. F5 dictation).
+//  Listens for fixed hold-to-record hotkeys.
+//  Uses CGEventTap at HID level to catch Fn before macOS shortcuts when possible.
 //
 
 import Cocoa
@@ -15,12 +15,9 @@ enum DictationMode {
 final class HotkeyManager {
 
     // MARK: - Virtual key codes (from HIToolbox/Events.h)
-    private static let defaultRawKeyCode: Int64 = 96
-    private static let defaultLLMKeyCode: Int64 = 97
     private static let fnKeyCode: Int64 = 63
-    private static let modifierKeyCodes: Set<Int64> = [54, 55, 56, 58, 59, 60, 61, 62, fnKeyCode]
-    static let rawHotkeyDefaultsKey = "raw_hotkey_code"
-    static let llmHotkeyDefaultsKey = "llm_hotkey_code"
+    private static let controlKeyCodes: Set<Int64> = [59, 62]
+    private static let fixedModifierKeyCodes: Set<Int64> = controlKeyCodes.union([fnKeyCode])
 
     // MARK: - Callbacks
     var onPress: ((DictationMode) -> Void)?
@@ -34,6 +31,8 @@ final class HotkeyManager {
     private var activeTapCanConsume = false
     private var rawIsDown = false
     private var llmIsDown = false
+    private var suppressRawUntilFnRelease = false
+    private var pendingRawStartToken: UUID?
     private var unmatchedEventLogCount = 0
 
     // MARK: - Public API
@@ -42,7 +41,7 @@ final class HotkeyManager {
         let listenAccess = CGPreflightListenEventAccess()
         DebugLog.shared.add("Hotkey permission status: listenAccess=\(listenAccess)")
         DebugLog.shared.add("Accessibility permission status: trusted=\(accessibilityTrusted)")
-        DebugLog.shared.add("Configured hotkeys: raw=\(configuredRawKeyCode()), rewrite=\(configuredLLMKeyCode())")
+        DebugLog.shared.add("Fixed hotkeys: Fn=raw, Fn+Control=rewrite")
 
         promptForPermissionsIfNeeded()
         startGlobalMonitors()
@@ -183,28 +182,9 @@ final class HotkeyManager {
     }
 
     private func mode(for keyCode: Int64) -> DictationMode? {
-        if keyCode == Int64(configuredRawKeyCode()) { return .raw }
-        if keyCode == Int64(configuredLLMKeyCode()) { return .llm }
+        // Murmur's push-to-talk shortcuts are modifier-only chords handled
+        // through flagsChanged so Fn and Fn+Control can be distinguished.
         return nil
-    }
-
-    private func modeForModifierKeyCode(_ keyCode: Int64) -> DictationMode? {
-        guard Self.modifierKeyCodes.contains(keyCode) else { return nil }
-        if configuredRawKeyCode() == Int(keyCode) { return .raw }
-        if configuredLLMKeyCode() == Int(keyCode) { return .llm }
-        return nil
-    }
-
-    private func configuredRawKeyCode() -> Int {
-        let defaults = UserDefaults.standard
-        return defaults.object(forKey: Self.rawHotkeyDefaultsKey) as? Int
-            ?? Int(Self.defaultRawKeyCode)
-    }
-
-    private func configuredLLMKeyCode() -> Int {
-        let defaults = UserDefaults.standard
-        return defaults.object(forKey: Self.llmHotkeyDefaultsKey) as? Int
-            ?? Int(Self.defaultLLMKeyCode)
     }
 
     private func handleEdge(isDown: Bool, autorepeat: Bool,
@@ -239,70 +219,94 @@ final class HotkeyManager {
 
     private func handleGlobalFlagsChanged(_ event: NSEvent) {
         let keyCode = Int64(event.keyCode)
-        guard let mode = modeForModifierKeyCode(keyCode) else {
+        guard Self.fixedModifierKeyCodes.contains(keyCode) else {
             logUnmatchedEvent(source: "NSEvent flags", type: "changed", keyCode: keyCode)
             return
         }
 
-        let isDown = isModifierPressed(keyCode: keyCode, flags: event.modifierFlags)
-        logHotkeyEdge(isDown: isDown, autorepeat: false, mode: mode, keyCode: keyCode)
-
-        switch mode {
-        case .raw:
-            handleEdge(isDown: isDown, autorepeat: false, current: &rawIsDown, mode: mode)
-        case .llm:
-            handleEdge(isDown: isDown, autorepeat: false, current: &llmIsDown, mode: mode)
-        }
+        handleModifierState(fnPressed: event.modifierFlags.contains(.function),
+                            controlPressed: event.modifierFlags.contains(.control),
+                            source: "NSEvent flags",
+                            keyCode: keyCode)
     }
 
     private func handleModifierFlagsChanged(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-        guard let mode = modeForModifierKeyCode(keyCode) else { return Unmanaged.passUnretained(event) }
+        guard Self.fixedModifierKeyCodes.contains(keyCode) else { return Unmanaged.passUnretained(event) }
 
-        let isDown = isModifierPressed(keyCode: keyCode, flags: event.flags)
-        switch mode {
-        case .raw:
-            logHotkeyEdge(isDown: isDown, autorepeat: false, mode: mode, keyCode: keyCode)
-            handleEdge(isDown: isDown, autorepeat: false, current: &rawIsDown, mode: mode)
-        case .llm:
-            logHotkeyEdge(isDown: isDown, autorepeat: false, mode: mode, keyCode: keyCode)
-            handleEdge(isDown: isDown, autorepeat: false, current: &llmIsDown, mode: mode)
-        }
+        let shouldConsume = handleModifierState(fnPressed: event.flags.contains(.maskSecondaryFn),
+                                                controlPressed: event.flags.contains(.maskControl),
+                                                source: "CGEvent flags",
+                                                keyCode: keyCode)
 
-        return activeTapCanConsume ? nil : Unmanaged.passUnretained(event)
+        return activeTapCanConsume && shouldConsume ? nil : Unmanaged.passUnretained(event)
     }
 
-    private func isModifierPressed(keyCode: Int64, flags: CGEventFlags) -> Bool {
-        switch keyCode {
-        case 54, 55:
-            return flags.contains(.maskCommand)
-        case 56, 60:
-            return flags.contains(.maskShift)
-        case 58, 61:
-            return flags.contains(.maskAlternate)
-        case 59, 62:
-            return flags.contains(.maskControl)
-        case Self.fnKeyCode:
-            return flags.contains(.maskSecondaryFn)
-        default:
-            return false
+    @discardableResult
+    private func handleModifierState(fnPressed: Bool,
+                                     controlPressed: Bool,
+                                     source: String,
+                                     keyCode: Int64) -> Bool {
+        var desiredMode: DictationMode?
+
+        if fnPressed && controlPressed {
+            desiredMode = .llm
+        } else if fnPressed && !suppressRawUntilFnRelease {
+            desiredMode = .raw
+        } else if !fnPressed {
+            suppressRawUntilFnRelease = false
         }
+
+        if llmIsDown && desiredMode == .raw {
+            // If Control is released before Fn, end rewrite mode but do not
+            // accidentally start a new raw recording for the tail of the hold.
+            suppressRawUntilFnRelease = true
+            desiredMode = nil
+        }
+
+        DebugLog.shared.add("\(source) state: fn=\(fnPressed), control=\(controlPressed), desired=\(desiredMode == .raw ? "raw" : desiredMode == .llm ? "rewrite" : "none"), keyCode=\(keyCode)")
+
+        setActiveMode(desiredMode, keyCode: keyCode)
+        return fnPressed || rawIsDown || llmIsDown || keyCode == Self.fnKeyCode || Self.controlKeyCodes.contains(keyCode)
     }
 
-    private func isModifierPressed(keyCode: Int64, flags: NSEvent.ModifierFlags) -> Bool {
-        switch keyCode {
-        case 54, 55:
-            return flags.contains(.command)
-        case 56, 60:
-            return flags.contains(.shift)
-        case 58, 61:
-            return flags.contains(.option)
-        case 59, 62:
-            return flags.contains(.control)
-        case Self.fnKeyCode:
-            return flags.contains(.function)
-        default:
-            return false
+    private func setActiveMode(_ desiredMode: DictationMode?, keyCode: Int64) {
+        if desiredMode != .raw {
+            pendingRawStartToken = nil
+        }
+
+        if desiredMode != .raw && rawIsDown {
+            rawIsDown = false
+            logHotkeyEdge(isDown: false, autorepeat: false, mode: .raw, keyCode: keyCode)
+            DispatchQueue.main.async { self.onRelease?(.raw) }
+        }
+
+        if desiredMode != .llm && llmIsDown {
+            llmIsDown = false
+            logHotkeyEdge(isDown: false, autorepeat: false, mode: .llm, keyCode: keyCode)
+            DispatchQueue.main.async { self.onRelease?(.llm) }
+        }
+
+        if desiredMode == .raw && !rawIsDown && pendingRawStartToken == nil {
+            let token = UUID()
+            pendingRawStartToken = token
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+                guard let self,
+                      self.pendingRawStartToken == token,
+                      !self.rawIsDown,
+                      !self.llmIsDown else { return }
+
+                self.pendingRawStartToken = nil
+                self.rawIsDown = true
+                self.logHotkeyEdge(isDown: true, autorepeat: false, mode: .raw, keyCode: keyCode)
+                self.onPress?(.raw)
+            }
+        }
+
+        if desiredMode == .llm && !llmIsDown {
+            llmIsDown = true
+            logHotkeyEdge(isDown: true, autorepeat: false, mode: .llm, keyCode: keyCode)
+            DispatchQueue.main.async { self.onPress?(.llm) }
         }
     }
 
