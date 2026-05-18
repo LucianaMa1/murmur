@@ -302,7 +302,7 @@
         <article class="feature-card"><span class="feature-icon">Fn</span><div><strong>Push-to-talk dictation</strong><p>Hold Fn, speak, release. Murmur records and transcribes with WhisperKit locally on your Mac.</p></div></article>
         <article class="feature-card"><span class="feature-icon">⌃</span><div><strong>AI rewrite/polish</strong><p>Hold Fn + Control to transcribe, then rewrite with your saved prompt. Only text goes to OpenAI, not audio.</p></div></article>
         <article class="feature-card"><span class="feature-icon">☝</span><div><strong>Floating controls</strong><p>Use on-screen Transcribe and Rewrite buttons when macOS catches the Fn key.</p></div></article>
-        <article class="feature-card"><span class="feature-icon">⌘</span><div><strong>Auto-paste + restore</strong><p>Paste directly into the active text field, then restore whatever was already on your clipboard.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">⌘</span><div><strong>Auto-paste + clipboard restoration</strong><p>Paste directly into the active text field, then restore whatever was already on your clipboard.</p></div></article>
         <article class="feature-card"><span class="feature-icon">Aa</span><div><strong>Vocabulary support</strong><p>Add names, jargon, commands, and correction pairs in plain-text vocabulary files.</p></div></article>
         <article class="feature-card"><span class="feature-icon">bug</span><div><strong>Debug panel</strong><p>See recording, transcription, permission, paste, and API logs when something fails.</p></div></article>
       </div>
@@ -313,7 +313,7 @@
       <h2 id="settings-title" class="section-title">Tune the app without turning it into a dashboard.</h2>
       <div class="info-grid">
         <article class="info-card"><h3>Rewrite brain</h3><ul><li>OpenAI API key only for Fn + Control rewrite</li><li>Choose the OpenAI model</li><li>Edit the LLM prompt that controls polish style</li></ul></article>
-        <article class="info-card"><h3>Paste behavior</h3><ul><li>Turn auto-paste on or off</li><li>Show or hide floating controls</li><li>Pick glass, dark, or light floating style</li></ul></article>
+        <article class="info-card"><h3>Paste behavior</h3><ul><li>Turn auto-paste on or off</li><li>Show or hide floating controls</li><li>Pick glass, dark, or light floating style</li><li>Choose mint, blue, pink, amber, violet, or graphite accents</li></ul></article>
         <article class="info-card"><h3>Personal language</h3><ul><li>Open vocabulary and learned correction files</li><li>Add names, jargon, and commands</li><li>Optionally learn useful correction patterns</li></ul></article>
       </div>
     </section>
@@ -345,7 +345,7 @@
       <div class="section-kicker">troubleshooting</div>
       <h2 id="watch-title" class="section-title">When macOS gets picky, check these first.</h2>
       <div class="watch-grid">
-        <article class="watch-card"><h3>Permissions matter</h3><ul><li>Microphone is required for recording.</li><li>Accessibility is required for auto-paste.</li><li>Input Monitoring is required for hotkeys.</li><li>After permission changes, quit and reopen Murmur.</li></ul></article>
+        <article class="watch-card"><h3>Permissions matter</h3><ul><li>Microphone is required for recording.</li><li>Accessibility is required for auto-paste.</li><li>Input Monitoring is required for hotkeys.</li><li>If permissions act weird, remove and re-add Murmur in Accessibility and Input Monitoring.</li><li>After permission changes, quit and reopen Murmur.</li></ul></article>
         <article class="watch-card"><h3>If hotkeys or paste fail</h3><ul><li>If macOS intercepts Fn, use the floating Transcribe/Rewrite buttons.</li><li>Raw Fn transcription works locally.</li><li>Fn + Control rewrite needs internet and an OpenAI key.</li><li>English only for now.</li><li>Use the Debug Panel to check recording, transcription, paste, permissions, and API failures.</li></ul></article>
       </div>
     </section>
