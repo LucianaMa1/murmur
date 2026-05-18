@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Murmur — hold a key, speak, paste into any Mac app</title>
-  <meta name="description" content="Murmur is a macOS menu-bar dictation app with hold-to-record hotkeys, local Whisper transcription, optional LLM polish, auto-paste, and editable vocabulary." />
-  <meta property="og:title" content="Murmur — native macOS dictation" />
-  <meta property="og:description" content="Hold F5 for local raw transcription or F6 for AI-polished text. Murmur pastes into the app you are already using." />
+  <title>Murmur — hold Fn, speak, paste into any Mac app</title>
+  <meta name="description" content="Murmur is a macOS menu-bar dictation app: hold Fn to transcribe locally, hold Fn + Control to rewrite with AI, then paste into any Mac app." />
+  <meta property="og:title" content="Murmur — Fn push-to-talk dictation for macOS" />
+  <meta property="og:description" content="Hold Fn for local transcription or Fn + Control for AI rewrite. Murmur can paste into the app you are already using." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://murmur.luciana.digital" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -103,7 +103,7 @@
     .key-row.two { bottom: 24%; left: 15%; right: 7%; }
     .flat-key { min-height: 42px; border: 3px solid var(--ink); border-radius: 11px; background: var(--paper); box-shadow: 4px 5px 0 var(--ink); display: grid; place-items: center; font-family: var(--display); font-size: clamp(13px, 1.3vw, 18px); }
     .fn-key { position: absolute; left: 18%; bottom: 11%; width: clamp(116px, 16vw, 185px); height: clamp(78px, 10vw, 118px); border: 5px solid var(--ink); border-radius: 22px; background: var(--paper); box-shadow: 11px 15px 0 var(--ink); transform: rotateX(57deg) rotateZ(-9deg) skewX(-8deg) translateY(14px); transform-origin: center bottom; display: grid; place-items: center; font-family: var(--display); font-size: clamp(38px, 6vw, 78px); z-index: 4; }
-    .fn-key:after { content: "press + hold"; position: absolute; left: 100%; top: -18px; margin-left: 12px; font-size: clamp(18px, 2vw, 28px); white-space: nowrap; transform: skewX(8deg) rotateZ(4deg); }
+    .fn-key:after { content: "hold to record"; position: absolute; left: 100%; top: -18px; margin-left: 12px; font-size: clamp(18px, 2vw, 28px); white-space: nowrap; transform: skewX(8deg) rotateZ(4deg); }
     .fingertip { position: absolute; left: 18%; bottom: 27%; width: clamp(76px, 9vw, 112px); height: clamp(112px, 13vw, 168px); border: 5px solid var(--ink); border-radius: 52% 52% 40% 40%; background: var(--paper); transform: rotate(12deg) skewY(-5deg); z-index: 7; box-shadow: 7px 8px 0 var(--ink); }
     .fingertip:before { content: ""; position: absolute; left: 21%; top: 14%; width: 58%; height: 29%; border: 3px solid var(--ink); border-radius: 999px; }
     .fingertip:after { content: ""; position: absolute; left: 34%; bottom: -18%; width: 32%; height: 22%; border-left: 5px solid var(--ink); border-right: 5px solid var(--ink); background: var(--paper); }
@@ -126,6 +126,23 @@
     .feature-card:nth-child(2) { transform: rotate(.5deg); }
     .feature-card:nth-child(3) { transform: rotate(-.2deg); }
     .feature-icon { min-width: 72px; height: 72px; border: 3px solid var(--ink); border-radius: 20px; display: grid; place-items: center; font-family: var(--display); font-size: 42px; }
+    .feature-card { align-items: flex-start; }
+    .feature-card div:last-child { display: grid; gap: 8px; }
+    .feature-card strong { display: block; font-size: clamp(24px, 2.4vw, 36px); line-height: .95; }
+    .feature-card p { margin: 0; font-family: var(--hand); font-size: clamp(20px, 1.8vw, 27px); font-weight: 700; line-height: 1.04; }
+    .section-kicker { width: max-content; margin: 0 auto 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); padding: 7px 14px 10px; font-family: var(--display); font-size: clamp(17px, 1.4vw, 22px); }
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .info-card { border: 4px solid var(--ink); border-radius: 28px; background: var(--paper); box-shadow: 6px 6px 0 var(--ink); padding: 22px; transform: rotate(.25deg); }
+    .info-card:nth-child(even) { transform: rotate(-.25deg); }
+    .info-card h3 { margin: 0 0 14px; font-family: var(--display); font-size: clamp(28px, 3vw, 44px); line-height: .9; }
+    .info-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+    .info-card li { font-size: clamp(20px, 1.8vw, 28px); font-weight: 700; line-height: 1.05; }
+    .info-card li:before { content: "→ "; font-family: var(--display); }
+    .watch-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 20px; align-items: stretch; }
+    .watch-card { border: 4px solid var(--ink); border-radius: 30px; padding: clamp(22px, 3vw, 34px); background: var(--paper); box-shadow: 7px 7px 0 var(--ink); }
+    .watch-card h3 { margin: 0 0 16px; font-family: var(--display); font-size: clamp(34px, 4.6vw, 66px); line-height: .9; }
+    .watch-card p, .watch-card li { font-size: clamp(21px, 2vw, 30px); font-weight: 700; line-height: 1.07; }
+    .watch-card ul { margin: 0; padding-left: 1.1em; }
 
     .section-title { margin: 0 auto 34px; max-width: 1040px; text-align: center; font-family: var(--display); font-size: clamp(42px, 6.5vw, 94px); line-height: .9; letter-spacing: -.025em; }
     .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; align-items: start; }
@@ -149,7 +166,7 @@
     .install-copy h2 { font-family: var(--display); font-size: clamp(38px, 5.4vw, 80px); line-height: .88; margin: 0; }
     .install-copy p { font-size: clamp(21px, 2.3vw, 32px); font-weight: 700; margin: 0; }
     .command { display: flex; align-items: stretch; border: 4px solid var(--ink); border-radius: 18px; overflow: hidden; background: var(--ink); color: var(--paper); }
-    pre { margin: 0; padding: 16px 18px 19px; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; flex: 1; }
+    pre { margin: 0; padding: 16px 18px 19px; white-space: pre; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; flex: 1; }
     .copy { border: 0; border-left: 4px solid var(--paper); background: var(--paper); color: var(--ink); padding: 0 18px; font-family: var(--display); font-size: 24px; cursor: pointer; }
 
     footer { padding: 32px 0 64px; text-align: center; font-family: var(--display); font-size: clamp(20px, 2.2vw, 32px); }
@@ -158,7 +175,7 @@
       body { font-size: 20px; }
       header { align-items: flex-start; flex-direction: column; }
       .nav { width: 100%; justify-content: space-between; gap: 10px; }
-      .hero-panel, .perspective-scene, .features, .steps, .install-body { grid-template-columns: 1fr; }
+      .hero-panel, .perspective-scene, .features, .steps, .install-body, .info-grid, .watch-grid { grid-template-columns: 1fr; }
       .hero-copy { text-align: center; }
       .chapter { margin: 0 auto; }
       .cta { justify-content: center; }
@@ -197,9 +214,9 @@
       <span>Murmur</span>
     </a>
     <nav class="nav" aria-label="Main navigation">
-      <a href="#why">Why</a>
-      <a href="#how">How it works</a>
-      <a href="https://github.com/LucianaMa1/murmur">GitHub</a>
+      <a href="#why">Features</a>
+      <a href="#settings">Settings</a>
+      <a href="#watch">Troubleshoot</a>
       <a href="#install">Install</a>
     </nav>
   </header>
@@ -208,28 +225,28 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-panel">
         <div class="hero-copy">
-          <span class="chapter">01 · tiny Mac utility</span>
+          <span class="chapter">01 · menu bar dictation</span>
           <p class="eyebrow">native macOS dictation</p>
-          <h1 id="hero-title">Hold a key. Say it. Get clean text.</h1>
-          <p class="sub">Murmur writes into the app you are already using. Hold <span class="keycap-inline">F5</span> for local raw transcription or <span class="keycap-inline">F6</span> for an AI-polished rewrite.</p>
+          <h1 id="hero-title">Hold Fn. Speak. Paste clean text.</h1>
+          <p class="sub">Murmur writes into the app you are already using. Hold <span class="keycap-inline">Fn</span> to transcribe locally, or <span class="keycap-inline">Fn</span> + <span class="keycap-inline">Control</span> to rewrite with your saved prompt.</p>
           <div class="cta">
             <a class="button" href="#install">Install prototype →</a>
             <a class="button" href="https://github.com/LucianaMa1/murmur">View source</a>
           </div>
-          <p class="note">Note: macOS 14+ on Apple Silicon. F6 polish uses your OpenAI API key.</p>
+          <p class="note">Note: raw transcription runs locally with WhisperKit. Rewrite sends text — not audio — to OpenAI and needs your API key.</p>
           <div class="pills" aria-label="Product traits">
-            <span class="pill">menu-bar utility</span>
+            <span class="pill">menu-bar app</span>
             <span class="pill">global hotkeys</span>
             <span class="pill">editable vocabulary</span>
           </div>
         </div>
         <aside class="hero-side" aria-label="Murmur quick flow">
           <div class="mini-flow">
-            <h2>what happens?</h2>
-            <div class="mini-step"><span class="mini-num">1</span><span>press a Fn-row hotkey</span></div>
-            <div class="mini-step"><span class="mini-num">2</span><span>speak naturally</span></div>
-            <div class="mini-step"><span class="mini-num">3</span><span>text lands where your cursor is</span></div>
-            <div class="mini-output">clean launch update appears here▌</div>
+            <h2>two ways to talk</h2>
+            <div class="mini-step"><span class="mini-num">1</span><span>choose a hotkey</span></div>
+            <div class="mini-step"><span class="mini-num">2</span><span>speak, then release</span></div>
+            <div class="mini-step"><span class="mini-num">3</span><span>paste or copy the result</span></div>
+            <div class="mini-output">raw transcript or polished rewrite appears here▌</div>
           </div>
         </aside>
       </div>
@@ -238,7 +255,7 @@
     <section class="diagram sketch-border" aria-label="Murmur 3D keyboard workflow sketch">
       <div class="window-top">
         <span class="mini-brand">〰️ Murmur</span>
-        <span>press Fn-row hotkey → transcribe / polish → paste</span>
+        <span>Fn transcribes · Fn + Control rewrites</span>
       </div>
       <div class="window-body">
         <div class="perspective-scene">
@@ -262,16 +279,16 @@
                 <circle cx="340" cy="64" r="10"/>
               </svg>
             </div>
-            <div class="voice-label">hold Fn key + speak</div>
+            <div class="voice-label">hold Fn / Fn + Control</div>
           </div>
           <div class="output-stack" aria-label="Murmur output modes">
             <article class="mode-card transcribe">
-              <span class="label">F5 transcribe</span>
-              <p>voice becomes local text in your active app.</p>
+              <span class="label">Fn transcribe</span>
+              <p>local WhisperKit transcription, then optional auto-paste.</p>
             </article>
             <article class="mode-card polish-card">
-              <span class="label">F6 polish</span>
-              <p>same thought, cleaned up before pasting.</p>
+              <span class="label">Fn + Control rewrite</span>
+              <p>transcribed text is rewritten with your custom prompt.</p>
             </article>
           </div>
         </div>
@@ -279,24 +296,39 @@
     </section>
 
     <section id="why" aria-labelledby="why-title">
-      <h2 id="why-title" class="section-title">Dictation without switching context.</h2>
+      <div class="section-kicker">current features</div>
+      <h2 id="why-title" class="section-title">A tiny app with the controls you actually need.</h2>
       <div class="features">
-        <article class="feature-card"><span class="feature-icon">⌘</span><span>Global hold-to-record</span></article>
-        <article class="feature-card"><span class="feature-icon">✦</span><span>Raw or polished</span></article>
-        <article class="feature-card"><span class="feature-icon">Aa</span><span>Vocabulary you control</span></article>
+        <article class="feature-card"><span class="feature-icon">Fn</span><div><strong>Push-to-talk dictation</strong><p>Hold Fn, speak, release. Murmur records and transcribes with WhisperKit locally on your Mac.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">⌃</span><div><strong>AI rewrite/polish</strong><p>Hold Fn + Control to transcribe, then rewrite with your saved prompt. Only text goes to OpenAI, not audio.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">☝</span><div><strong>Floating controls</strong><p>Use on-screen Transcribe and Rewrite buttons when macOS catches the Fn key.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">⌘</span><div><strong>Auto-paste + restore</strong><p>Paste directly into the active text field, then restore whatever was already on your clipboard.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">Aa</span><div><strong>Vocabulary support</strong><p>Add names, jargon, commands, and correction pairs in plain-text vocabulary files.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">bug</span><div><strong>Debug panel</strong><p>See recording, transcription, permission, paste, and API logs when something fails.</p></div></article>
+      </div>
+    </section>
+
+    <section id="settings" aria-labelledby="settings-title">
+      <div class="section-kicker">settings</div>
+      <h2 id="settings-title" class="section-title">Tune the app without turning it into a dashboard.</h2>
+      <div class="info-grid">
+        <article class="info-card"><h3>Rewrite brain</h3><ul><li>OpenAI API key only for Fn + Control rewrite</li><li>Choose the OpenAI model</li><li>Edit the LLM prompt that controls polish style</li></ul></article>
+        <article class="info-card"><h3>Paste behavior</h3><ul><li>Turn auto-paste on or off</li><li>Show or hide floating controls</li><li>Pick glass, dark, or light floating style</li></ul></article>
+        <article class="info-card"><h3>Personal language</h3><ul><li>Open vocabulary and learned correction files</li><li>Add names, jargon, and commands</li><li>Optionally learn useful correction patterns</li></ul></article>
       </div>
     </section>
 
     <section id="how" aria-labelledby="how-title">
-      <h2 id="how-title" class="section-title">Four seconds from thought to text.</h2>
+      <div class="section-kicker">flow</div>
+      <h2 id="how-title" class="section-title">How Murmur works</h2>
       <div class="steps">
         <article class="step">
           <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M28 19l54 34-26 8 13 30-16 7-13-30-20 18z"/><path d="M77 30l16-13M88 52h20M70 16l6-16"/></svg></div>
-          <span>1. Click anywhere</span>
+          <span>1. Click any text field</span>
         </article>
         <article class="step">
-          <div class="step-art"><div class="keys-mini"><span class="mini-key">F5</span><span class="mini-key">F6</span></div></div>
-          <span>2. Hold F5/F6</span>
+          <div class="step-art"><div class="keys-mini"><span class="mini-key">Fn</span><span class="mini-key">⌃</span></div></div>
+          <span>2. Hold Fn or Fn+Control</span>
         </article>
         <article class="step">
           <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M20 28h80v52H56L36 100V80H20z"/><path d="M38 51h44M38 64h29"/></svg></div>
@@ -309,6 +341,15 @@
       </div>
     </section>
 
+    <section id="watch" aria-labelledby="watch-title">
+      <div class="section-kicker">troubleshooting</div>
+      <h2 id="watch-title" class="section-title">When macOS gets picky, check these first.</h2>
+      <div class="watch-grid">
+        <article class="watch-card"><h3>Permissions matter</h3><ul><li>Microphone is required for recording.</li><li>Accessibility is required for auto-paste.</li><li>Input Monitoring is required for hotkeys.</li><li>After permission changes, quit and reopen Murmur.</li></ul></article>
+        <article class="watch-card"><h3>If hotkeys or paste fail</h3><ul><li>If macOS intercepts Fn, use the floating Transcribe/Rewrite buttons.</li><li>Raw Fn transcription works locally.</li><li>Fn + Control rewrite needs internet and an OpenAI key.</li><li>English only for now.</li><li>Use the Debug Panel to check recording, transcription, paste, permissions, and API failures.</li></ul></article>
+      </div>
+    </section>
+
     <section id="install" aria-labelledby="install-title">
       <div class="install">
         <div class="install-top"><span class="control"></span><span class="control"></span><span class="control"></span></div>
@@ -316,7 +357,7 @@
           <div class="terminal-art" aria-hidden="true"><div class="terminal-line"></div><div class="terminal-line"></div><div class="terminal-line"></div></div>
           <div class="install-copy">
             <h2 id="install-title">Install the prototype</h2>
-            <p>Run the installer, grant microphone/input/accessibility permissions, then look for 〰️ in your menu bar.</p>
+            <p>Run the installer, grant Microphone, Accessibility, and Input Monitoring permissions, then look for 〰️ in your menu bar.</p>
             <div class="command">
               <pre>$ curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash</pre>
               <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash">Copy</button>
