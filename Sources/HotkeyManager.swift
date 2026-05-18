@@ -31,6 +31,8 @@ final class HotkeyManager {
     private var activeTapCanConsume = false
     private var rawIsDown = false
     private var llmIsDown = false
+    private var fnIsPressed = false
+    private var controlIsPressed = false
     private var suppressRawUntilFnRelease = false
     private var pendingRawStartToken: UUID?
     private var unmatchedEventLogCount = 0
@@ -110,6 +112,10 @@ final class HotkeyManager {
         runLoopSource = nil
         globalKeyMonitor = nil
         globalFlagMonitor = nil
+        fnIsPressed = false
+        controlIsPressed = false
+        suppressRawUntilFnRelease = false
+        pendingRawStartToken = nil
     }
 
     // MARK: - Permission
@@ -224,36 +230,47 @@ final class HotkeyManager {
             return
         }
 
-        handleModifierState(fnPressed: event.modifierFlags.contains(.function),
-                            controlPressed: event.modifierFlags.contains(.control),
-                            source: "NSEvent flags",
-                            keyCode: keyCode)
+        updateTrackedModifierState(keyCode: keyCode,
+                                   fnFlag: event.modifierFlags.contains(.function),
+                                   controlFlag: event.modifierFlags.contains(.control))
+        handleTrackedModifierState(source: "NSEvent flags", keyCode: keyCode)
     }
 
     private func handleModifierFlagsChanged(_ event: CGEvent) -> Unmanaged<CGEvent>? {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         guard Self.fixedModifierKeyCodes.contains(keyCode) else { return Unmanaged.passUnretained(event) }
 
-        let shouldConsume = handleModifierState(fnPressed: event.flags.contains(.maskSecondaryFn),
-                                                controlPressed: event.flags.contains(.maskControl),
-                                                source: "CGEvent flags",
-                                                keyCode: keyCode)
+        updateTrackedModifierState(keyCode: keyCode,
+                                   fnFlag: event.flags.contains(.maskSecondaryFn),
+                                   controlFlag: event.flags.contains(.maskControl))
+        let shouldConsume = handleTrackedModifierState(source: "CGEvent flags", keyCode: keyCode)
 
         return activeTapCanConsume && shouldConsume ? nil : Unmanaged.passUnretained(event)
     }
 
+    private func updateTrackedModifierState(keyCode: Int64, fnFlag: Bool, controlFlag: Bool) {
+        if fnFlag {
+            fnIsPressed = true
+        } else if keyCode == Self.fnKeyCode {
+            fnIsPressed = false
+        }
+
+        if controlFlag {
+            controlIsPressed = true
+        } else if Self.controlKeyCodes.contains(keyCode) {
+            controlIsPressed = false
+        }
+    }
+
     @discardableResult
-    private func handleModifierState(fnPressed: Bool,
-                                     controlPressed: Bool,
-                                     source: String,
-                                     keyCode: Int64) -> Bool {
+    private func handleTrackedModifierState(source: String, keyCode: Int64) -> Bool {
         var desiredMode: DictationMode?
 
-        if fnPressed && controlPressed {
+        if fnIsPressed && controlIsPressed {
             desiredMode = .llm
-        } else if fnPressed && !suppressRawUntilFnRelease {
+        } else if fnIsPressed && !suppressRawUntilFnRelease {
             desiredMode = .raw
-        } else if !fnPressed {
+        } else if !fnIsPressed {
             suppressRawUntilFnRelease = false
         }
 
@@ -264,10 +281,10 @@ final class HotkeyManager {
             desiredMode = nil
         }
 
-        DebugLog.shared.add("\(source) state: fn=\(fnPressed), control=\(controlPressed), desired=\(desiredMode == .raw ? "raw" : desiredMode == .llm ? "rewrite" : "none"), keyCode=\(keyCode)")
+        DebugLog.shared.add("\(source) state: fn=\(fnIsPressed), control=\(controlIsPressed), desired=\(desiredMode == .raw ? "raw" : desiredMode == .llm ? "rewrite" : "none"), keyCode=\(keyCode)")
 
         setActiveMode(desiredMode, keyCode: keyCode)
-        return fnPressed || rawIsDown || llmIsDown || keyCode == Self.fnKeyCode || Self.controlKeyCodes.contains(keyCode)
+        return fnIsPressed || controlIsPressed || rawIsDown || llmIsDown || keyCode == Self.fnKeyCode || Self.controlKeyCodes.contains(keyCode)
     }
 
     private func setActiveMode(_ desiredMode: DictationMode?, keyCode: Int64) {
