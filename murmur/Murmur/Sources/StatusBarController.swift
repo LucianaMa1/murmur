@@ -101,7 +101,7 @@ final class StatusBarController {
 
         switch state {
         case .idle:
-            button.image = symbol("waveform.circle", color: .labelColor)
+            button.image = templateSymbol("waveform.circle")
             button.toolTip = "Murmur — idle (hold Fn or Fn + Control)"
 
         case .recording(let mode):
@@ -137,6 +137,14 @@ final class StatusBarController {
         tinted.unlockFocus()
         tinted.isTemplate = false
         return tinted
+    }
+
+    private func templateSymbol(_ name: String) -> NSImage? {
+        let config = NSImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: name)?
+            .withSymbolConfiguration(config)
+        image?.isTemplate = true
+        return image
     }
 
     private func startPulsing() {
