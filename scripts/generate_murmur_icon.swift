@@ -74,45 +74,21 @@ func drawIcon(size: CGFloat) -> NSImage {
     basePath.lineWidth = max(1.0, size * 0.01)
     basePath.stroke()
 
-    let markRect = NSRect(
-        x: baseRect.minX + baseRect.width * 0.08,
-        y: baseRect.midY + baseRect.height * 0.02,
-        width: baseRect.width * 0.22,
-        height: baseRect.height * 0.18
-    )
-    let wave = NSBezierPath()
-    wave.move(to: NSPoint(x: markRect.minX, y: markRect.midY - markRect.height * 0.10))
-    wave.curve(
-        to: NSPoint(x: markRect.minX + markRect.width * 0.34, y: markRect.midY - markRect.height * 0.08),
-        controlPoint1: NSPoint(x: markRect.minX + markRect.width * 0.12, y: markRect.maxY),
-        controlPoint2: NSPoint(x: markRect.minX + markRect.width * 0.22, y: markRect.minY)
-    )
-    wave.curve(
-        to: NSPoint(x: markRect.minX + markRect.width * 0.72, y: markRect.midY + markRect.height * 0.26),
-        controlPoint1: NSPoint(x: markRect.minX + markRect.width * 0.48, y: markRect.maxY),
-        controlPoint2: NSPoint(x: markRect.minX + markRect.width * 0.56, y: markRect.maxY)
-    )
-    wave.curve(
-        to: NSPoint(x: markRect.maxX, y: markRect.midY - markRect.height * 0.30),
-        controlPoint1: NSPoint(x: markRect.minX + markRect.width * 0.84, y: markRect.minY),
-        controlPoint2: NSPoint(x: markRect.minX + markRect.width * 0.91, y: markRect.maxY)
-    )
-    drawStroke(wave, color: color(8, 8, 8), width: max(2.2, size * 0.022))
-
-    let text = "Murmur"
+    let text = "M"
     let paragraph = NSMutableParagraphStyle()
-    paragraph.alignment = .left
-    var fontSize = size * 0.22
+    paragraph.alignment = .center
+    var fontSize = size * 0.58
     var font = handFont(size: fontSize)
     var attributes: [NSAttributedString.Key: Any] = [
         .font: font,
         .foregroundColor: color(5, 5, 5),
         .paragraphStyle: paragraph,
-        .kern: size * 0.002
+        .kern: 0
     ]
     var textSize = text.size(withAttributes: attributes)
-    let maxWidth = baseRect.width * 0.60
-    while textSize.width > maxWidth && fontSize > size * 0.10 {
+    let maxWidth = baseRect.width * 0.70
+    let maxHeight = baseRect.height * 0.68
+    while (textSize.width > maxWidth || textSize.height > maxHeight) && fontSize > size * 0.10 {
         fontSize -= size * 0.006
         font = handFont(size: fontSize)
         attributes[.font] = font
@@ -120,8 +96,8 @@ func drawIcon(size: CGFloat) -> NSImage {
     }
 
     let textRect = NSRect(
-        x: baseRect.minX + baseRect.width * 0.34,
-        y: baseRect.midY - baseRect.height * 0.08,
+        x: baseRect.midX - maxWidth / 2,
+        y: baseRect.midY - textSize.height * 0.54,
         width: maxWidth,
         height: textSize.height * 1.20
     )
@@ -135,10 +111,10 @@ func drawIcon(size: CGFloat) -> NSImage {
     text.draw(in: textRect, withAttributes: attributes)
     NSGraphicsContext.restoreGraphicsState()
 
-    let dotDiameter = size * 0.045
+    let dotDiameter = size * 0.075
     let dot = NSBezierPath(ovalIn: NSRect(
-        x: textRect.maxX - dotDiameter * 0.20,
-        y: textRect.minY + textRect.height * 0.20,
+        x: baseRect.maxX - baseRect.width * 0.18,
+        y: baseRect.minY + baseRect.height * 0.24,
         width: dotDiameter,
         height: dotDiameter
     ))
