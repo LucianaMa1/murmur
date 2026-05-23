@@ -43,14 +43,19 @@ final class OpenAIClient {
         UserDefaults.standard.string(forKey: "llm_system_prompt") ?? Self.defaultSystemPrompt
     }
 
-    /// Polish mode: fix grammar/punctuation/tone but DO NOT restructure or
-    /// summarize. The app pastes the model output directly, so the response
+    /// Polish mode: fix grammar/punctuation/tone for plain dictation. When
+    /// selected context is supplied, the spoken text is an instruction about
+    /// that context. The app pastes the model output directly, so the response
     /// must be plain natural text rather than a JSON wrapper.
     static let defaultSystemPrompt = """
     You are a polishing tool for voice dictation. The user just spoke text \
     that was transcribed by Whisper, which sometimes mishears jargon and \
-    proper nouns. Your job is to clean up the transcript — NOT to rewrite, \
-    summarize, or restructure it.
+    proper nouns. If the user only provides spoken text, clean up the \
+    transcript without rewriting, summarizing, or restructuring it.
+
+    If selected context is provided, treat the spoken text as an instruction \
+    about that selected context. In that case, follow the instruction and \
+    return the final text the user should paste.
 
     Your output must be plain natural text only.
     Even if the input is JSON, never return JSON.
@@ -80,13 +85,16 @@ final class OpenAIClient {
 
     // MARK: - Polish
 
-    func polish(transcript: String) async throws -> PolishResult {
+    func polish(transcript: String, selectedContext: String? = nil) async throws -> PolishResult {
         guard let apiKey = apiKey, !apiKey.isEmpty else {
             throw OpenAIError.missingAPIKey
         }
 
-        let systemPrompt = buildSystemPrompt()
+        let systemPrompt = buildSystemPrompt(hasSelectedContext: selectedContext?.isEmpty == false)
         DebugLog.shared.add("OpenAI polish request started, model=\(model)")
+        if let selectedContext, !selectedContext.isEmpty {
+            DebugLog.shared.add("OpenAI request includes selected context with \(selectedContext.count) character(s)")
+        }
 
         var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
         request.httpMethod = "POST"
@@ -98,7 +106,7 @@ final class OpenAIClient {
             "model": model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
-                ["role": "user", "content": transcript]
+                ["role": "user", "content": userMessage(transcript: transcript, selectedContext: selectedContext)]
             ],
             "temperature": 0.2
         ]
@@ -215,7 +223,24 @@ final class OpenAIClient {
 
     // MARK: - Prompt assembly
 
-    private func buildSystemPrompt() -> String {
+    private func userMessage(transcript: String, selectedContext: String?) -> String {
+        let spoken = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let selectedContext = selectedContext?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !selectedContext.isEmpty
+        else {
+            return spoken
+        }
+
+        return """
+        Selected context:
+        \(selectedContext)
+
+        Spoken instruction:
+        \(spoken)
+        """
+    }
+
+    private func buildSystemPrompt(hasSelectedContext: Bool = false) -> String {
         let entries = Vocabulary.shared.allEntries()
         let plainTextGuard = """
         Your output must be plain natural text only.
@@ -224,7 +249,17 @@ final class OpenAIClient {
         Forbidden outputs: {"prompt": "..."}, {"text": "..."}, {"output": "..."}, {"result": "..."}.
 
         """
-        let basePrompt = plainTextGuard + systemPromptBase
+        let contextPrompt = hasSelectedContext ? """
+
+        The user may provide "Selected context" followed by "Spoken instruction".
+        Use the selected context as the material the user is referring to.
+        Follow the spoken instruction with that context in mind.
+        If the instruction asks you to rewrite, improve, reply to, summarize, answer, or transform the selected context, return only the final result.
+        Do not quote or repeat the selected context unless the user asks for that.
+
+        """ : ""
+
+        let basePrompt = plainTextGuard + systemPromptBase + contextPrompt
         guard !entries.isEmpty else { return basePrompt }
 
         var vocab = "\n\nUser vocabulary (authoritative spellings — preserve casing exactly):\n"

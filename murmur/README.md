@@ -57,6 +57,7 @@ Then click the menu bar icon → **Settings** → paste your OpenAI API key. It 
 |---|---|
 | Hold **Fn** | Records, transcribes locally with Whisper, pastes the raw text |
 | Hold **Fn + Control** | Records, transcribes, sends to GPT for rewrite/polish, pastes the polished text |
+| Highlight text, then hold **Fn + Control** | Uses the highlighted text as context for your spoken instruction |
 
 Both keys work the same way: hold to record, release to process. There's no toggle — your finger on the key is the recording indicator.
 
@@ -78,6 +79,7 @@ Murmur is for the moments when typing is the bottleneck: the Slack reply you can
 
 - **Capture thoughts before they disappear.** Hold Fn, speak naturally, release, and the words land in the field you were already using. There is no transcript inbox to clean up later.
 - **Turn rough speech into usable writing.** Hold Fn + Control when you want Murmur to rewrite with your saved prompt, so a rambling spoken note can become a polished email, task, reply, or prompt.
+- **Reply with context.** Highlight text first, then use Fn + Control and say what you want. Murmur can use the selected content as context for instructions like "make this shorter", "reply warmly", or "turn this into a prompt".
 - **Keep control of your workflow.** Raw dictation runs locally, polish mode sends text only, auto-paste restores your clipboard, and vocabulary files stay plain-text so your names, commands, and domain terms remain inspectable.
 
 ### Who It Helps
@@ -129,6 +131,7 @@ A few design decisions worth calling out:
 
 - **Fn is fully local.** No API key required, no network needed. Useful when you want privacy or are working offline.
 - **Fn + Control is opt-in cloud.** Only the transcribed *text* is sent to OpenAI — never the audio. The polish prompt is fully customizable in Settings.
+- **Selected text can become AI context.** When Accessibility exposes highlighted text from the current app, Murmur sends that selected text with your spoken instruction so the model can answer or rewrite with context.
 - **Clipboard restoration.** After auto-paste, your previous clipboard contents are restored, so dictation doesn't clobber what you copied earlier. (Same approach Raycast and Superwhisper take.)
 - **Hold-to-talk.** No accidental activation, no end-of-speech detection latency. Your finger on the key is the start/stop signal.
 - **CGEventTap at HID level.** Murmur listens for Fn and Fn + Control before most app-level shortcuts. macOS may still reserve some Fn behavior depending on keyboard settings, so the floating buttons remain available as a mouse-first fallback.
@@ -240,6 +243,8 @@ murmur/
 **Audio is empty / nothing transcribed.** Microphone permission may have been denied. Check System Settings → Privacy & Security → Microphone.
 
 **Fn conflicts with macOS keyboard behavior.** Some Mac keyboard settings reserve Fn/Globe behavior before apps can consume it. Murmur still offers floating Transcribe and Rewrite buttons so you can trigger both modes with the mouse.
+
+**Selected context is missing.** Murmur reads highlighted text through macOS Accessibility. Some apps do not expose selected text, and Accessibility permission must be enabled. Open the Debug Panel to see whether context was captured or skipped.
 
 ---
 

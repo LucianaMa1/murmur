@@ -20,6 +20,7 @@ final class DictationCoordinator {
     private let hotkeys = HotkeyManager()
     private var activeMode: DictationMode?
     private var targetApp: NSRunningApplication?
+    private var selectedContext: String?
 
     var onStateChange: ((DictationCoordinatorState) -> Void)?
 
@@ -62,11 +63,15 @@ final class DictationCoordinator {
         }
         activeMode = mode
         targetApp = currentTargetApp()
+        selectedContext = mode == .llm ? SelectionReader.selectedText(in: targetApp) : nil
         DebugLog.shared.add("Recording started, mode=\(mode == .raw ? "raw" : "llm")")
         if let targetApp {
             DebugLog.shared.add("Target app captured: \(targetApp.localizedName ?? targetApp.bundleIdentifier ?? "<unknown>")")
         } else {
             DebugLog.shared.add("No non-Murmur target app captured; paste will use current frontmost app")
+        }
+        if mode == .llm, let selectedContext {
+            DebugLog.shared.add("AI mode will use selected context: \(String(selectedContext.prefix(160)))")
         }
         onStateChange?(.recording(mode))
         StatusBarController.shared.setRecording(true, mode: mode)
@@ -103,6 +108,7 @@ final class DictationCoordinator {
             let transcript = try await transcriber.transcribe(audioURL: audioURL)
             DebugLog.shared.add("Transcription finished: \(transcript.isEmpty ? "<empty>" : transcript)")
             guard !transcript.isEmpty else {
+                selectedContext = nil
                 onStateChange?(.idle)
                 StatusBarController.shared.setIdle()
                 return
@@ -114,7 +120,10 @@ final class DictationCoordinator {
                 finalText = transcript
 
             case .llm:
-                let result = try await OpenAIClient.shared.polish(transcript: transcript)
+                let result = try await OpenAIClient.shared.polish(
+                    transcript: transcript,
+                    selectedContext: selectedContext
+                )
                 finalText = result.polished
 
                 // Feed any non-trivial corrections back into the vocabulary.
@@ -128,6 +137,7 @@ final class DictationCoordinator {
             }
 
             ClipboardWriter.copy(finalText, autoPaste: autoPaste, targetApp: targetApp)
+            selectedContext = nil
             DebugLog.shared.add("Copied final text; autoPaste=\(autoPaste)")
             onStateChange?(.idle)
             StatusBarController.shared.setIdle()
@@ -136,6 +146,7 @@ final class DictationCoordinator {
             DebugLog.shared.add("Pipeline error: \(error.localizedDescription)")
             onStateChange?(.error(error.localizedDescription))
             StatusBarController.shared.setError(error.localizedDescription)
+            selectedContext = nil
             print("Pipeline error: \(error)")
         }
     }
