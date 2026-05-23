@@ -20,13 +20,12 @@ Murmur is built for the small but constant friction of writing on a Mac: the hal
 
 ### Who It Helps
 
-- **Founders and operators** who answer messages all day and need to move from thought to polished text without opening another tool.
-- **Builders and technical teams** who dictate jargon-heavy notes, commands, tickets, changelogs, and prompts that normal dictation often mangles.
-- **Creators and students** who want a quiet thinking companion for drafts, outlines, reflections, and quick capture.
+- **Everyone** who answer messages all day and need to move from thought to polished text without opening another tool.
+
 
 ### Positioning
 
-Murmur is not a meeting transcription suite or a note database. It is a lightweight voice keyboard: a faster way to put words exactly where your cursor already is, with optional AI polish when the first spoken version is not the final one.
+Murmur is a lightweight voice keyboard: a faster way to put words exactly where your cursor already is, with optional AI polish when the first spoken version is not the final one.
 
 ## Requirements
 
