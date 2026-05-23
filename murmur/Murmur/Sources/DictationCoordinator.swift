@@ -63,16 +63,33 @@ final class DictationCoordinator {
         }
         activeMode = mode
         targetApp = currentTargetApp()
-        selectedContext = mode == .llm ? SelectionReader.selectedText(in: targetApp) : nil
         DebugLog.shared.add("Recording started, mode=\(mode == .raw ? "raw" : "llm")")
         if let targetApp {
             DebugLog.shared.add("Target app captured: \(targetApp.localizedName ?? targetApp.bundleIdentifier ?? "<unknown>")")
         } else {
             DebugLog.shared.add("No non-Murmur target app captured; paste will use current frontmost app")
         }
-        if mode == .llm, let selectedContext {
-            DebugLog.shared.add("AI mode will use selected context: \(String(selectedContext.prefix(160)))")
+
+        if mode == .llm {
+            SelectionReader.selectedText(in: targetApp) { [weak self] context in
+                Task { @MainActor in
+                    guard let self, self.activeMode == mode else { return }
+                    self.selectedContext = context
+                    if let context {
+                        DebugLog.shared.add("AI mode will use selected context: \(String(context.prefix(160)))")
+                    } else {
+                        DebugLog.shared.add("AI mode proceeding without selected context")
+                    }
+                    self.startRecording(mode)
+                }
+            }
+        } else {
+            selectedContext = nil
+            startRecording(mode)
         }
+    }
+
+    private func startRecording(_ mode: DictationMode) {
         onStateChange?(.recording(mode))
         StatusBarController.shared.setRecording(true, mode: mode)
         recorder.start()
