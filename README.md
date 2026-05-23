@@ -34,7 +34,7 @@ Murmur is a lightweight voice keyboard: a faster way to put words exactly where 
 - Xcode / Swift toolchain to build from source
 - OpenAI API key for `Fn + Control` polish mode
 
-## Install prototype
+## Install Murmur
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash
