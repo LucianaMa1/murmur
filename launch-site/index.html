@@ -113,6 +113,12 @@
     .watch-card h3 { margin: 0 0 16px; font-family: var(--display); font-size: clamp(34px, 4.6vw, 66px); line-height: .9; }
     .watch-card p, .watch-card li { font-size: clamp(21px, 2vw, 30px); font-weight: 700; line-height: 1.07; }
     .watch-card ul { margin: 0; padding-left: 1.1em; }
+    .permission-gallery { margin-top: 28px; display: grid; grid-template-columns: .9fr 1.1fr 1.35fr; gap: 20px; align-items: start; }
+    .permission-shot { margin: 0; border: 4px solid var(--ink); border-radius: 28px; background: var(--paper); box-shadow: 6px 6px 0 var(--ink); padding: 12px; transform: rotate(-.35deg); }
+    .permission-shot:nth-child(2) { transform: rotate(.45deg); }
+    .permission-shot:nth-child(3) { transform: rotate(-.15deg); }
+    .permission-shot img { display: block; width: 100%; height: auto; border: 3px solid var(--ink); border-radius: 18px; background: #f4eef5; }
+    .permission-shot figcaption { margin-top: 10px; font-family: var(--display); font-size: clamp(18px, 1.8vw, 27px); line-height: .95; }
 
     .section-title { margin: 0 auto 34px; max-width: 1040px; text-align: center; font-family: var(--display); font-size: clamp(42px, 6.5vw, 94px); line-height: .9; letter-spacing: -.025em; }
     .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; align-items: start; }
@@ -145,7 +151,7 @@
       body { font-size: 20px; }
       header { align-items: flex-start; flex-direction: column; }
       .nav { width: 100%; justify-content: space-between; gap: 10px; }
-      .hero-panel, .features, .steps, .install-body, .info-grid, .watch-grid { grid-template-columns: 1fr; }
+      .hero-panel, .features, .steps, .install-body, .info-grid, .watch-grid, .permission-gallery { grid-template-columns: 1fr; }
       .hero-copy { text-align: center; }
       .chapter { margin: 0 auto; }
       .cta { justify-content: center; }
@@ -265,6 +271,20 @@
       <div class="watch-grid">
         <article class="watch-card"><h3>Permissions matter</h3><ul><li>Microphone is required for recording.</li><li>Accessibility is required for auto-paste.</li><li>Input Monitoring is required for hotkeys.</li><li>If permissions act weird, remove and re-add Murmur in Accessibility and Input Monitoring.</li><li>After permission changes, quit and reopen Murmur.</li></ul></article>
         <article class="watch-card"><h3>If hotkeys or paste fail</h3><ul><li>If macOS intercepts Fn, use the floating Transcribe/Rewrite buttons.</li><li>Raw Fn transcription works locally.</li><li>Fn + Control rewrite needs internet and an OpenAI key.</li><li>English only for now.</li><li>Use the Debug Panel to check recording, transcription, paste, permissions, and API failures.</li></ul></article>
+      </div>
+      <div class="permission-gallery" aria-label="macOS permission examples">
+        <figure class="permission-shot">
+          <img src="assets/macos-documents-permission.png" alt="macOS dialog asking to allow Murmur to access files in the Documents folder" loading="lazy" />
+          <figcaption>Allow Documents access when Murmur asks.</figcaption>
+        </figure>
+        <figure class="permission-shot">
+          <img src="assets/macos-accessibility-prompt.png" alt="macOS Accessibility Access dialog for Murmur with an Open System Settings button" loading="lazy" />
+          <figcaption>Open System Settings from the Accessibility prompt.</figcaption>
+        </figure>
+        <figure class="permission-shot">
+          <img src="assets/macos-accessibility-settings.png" alt="macOS Privacy and Security Accessibility list with Murmur enabled" loading="lazy" />
+          <figcaption>Make sure Murmur is switched on in Accessibility.</figcaption>
+        </figure>
       </div>
     </section>
 
