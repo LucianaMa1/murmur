@@ -69,6 +69,5 @@ swift build
 open dist/Murmur.app
 ```
 
-## Launch copy
-
-Product Hunt launch assets live in [`launch-kit/producthunt-launch-kit.md`](launch-kit/producthunt-launch-kit.md).
+## License
+MIT
