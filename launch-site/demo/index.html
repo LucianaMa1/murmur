@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Murmur Interaction Demo</title>
+    <style>
+      :root {
+        --ink: #050505;
+        --paper: #f9f7ef;
+        --panel: #fffdf5;
+        --muted: #555047;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Marker Felt", "Chalkboard SE", "Comic Sans MS", ui-rounded, system-ui, sans-serif;
+        font-weight: 900;
+      }
+
+      .home-link {
+        position: fixed;
+        top: 18px;
+        left: 18px;
+        z-index: 10;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--ink);
+        box-shadow: 3px 4px 0 var(--ink);
+        padding: 9px 14px 11px;
+        font-size: 18px;
+        line-height: 1;
+        text-decoration: none;
+      }
+
+      .home-link:hover,
+      .home-link:focus-visible {
+        transform: translate(2px, 2px);
+        box-shadow: 1px 2px 0 var(--ink);
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: minmax(340px, 1fr) minmax(0, 2fr);
+        gap: 18px;
+        min-height: 100vh;
+        padding: 22px;
+      }
+
+      .panel {
+        border: 4px solid var(--ink);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: 7px 8px 0 var(--ink);
+        min-width: 0;
+      }
+
+      .interactions {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 16px;
+        padding: 22px;
+      }
+
+      .header {
+        display: none;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 27px;
+        line-height: 1;
+      }
+
+      .status {
+        min-width: 150px;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--ink);
+        color: var(--panel);
+        font-size: 13px;
+        line-height: 1.05;
+        padding: 9px 12px;
+        text-align: center;
+      }
+
+      .flow {
+        position: relative;
+        display: grid;
+        gap: 18px;
+      }
+
+      .interaction-row {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 12px;
+        min-height: 112px;
+        border: 3px solid var(--ink);
+        border-radius: 22px;
+        background: var(--panel);
+        align-content: center;
+        padding: 22px 18px;
+        text-align: left;
+        color: var(--ink);
+        font: inherit;
+        cursor: pointer;
+        box-shadow: 3px 4px 0 var(--ink);
+        transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+      }
+
+      .interaction-row.is-active {
+        background: var(--panel);
+        color: var(--ink);
+        box-shadow: 3px 4px 0 var(--ink);
+        transform: none;
+      }
+
+      .interaction-row:focus-visible {
+        outline: 4px solid var(--ink);
+        outline-offset: 3px;
+      }
+
+      .row-top {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .number {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border: 3px solid currentColor;
+        border-radius: 50%;
+        font-size: 18px;
+      }
+
+      .interaction-row h2 {
+        flex: 1;
+        font-size: 20px;
+        line-height: 1.05;
+      }
+
+      .keys {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .sound-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 3px solid currentColor;
+        border-radius: 50%;
+      }
+
+      .sound-icon svg {
+        width: 27px;
+        height: 27px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 3.2;
+      }
+
+      .keycap {
+        display: inline-grid;
+        place-items: center;
+        min-width: 70px;
+        min-height: 48px;
+        border: 3px solid currentColor;
+        border-radius: 9px 12px 8px 10px;
+        padding: 6px 14px;
+        font-size: 20px;
+        line-height: 1;
+        box-shadow: 2px 3px 0 currentColor;
+      }
+
+      .fn-key {
+        grid-template-columns: auto auto;
+        gap: 7px;
+      }
+
+      .globe-icon {
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.7;
+      }
+
+      .interaction-row.is-active .keycap {
+        transform: translate(2px, 3px);
+        background: var(--ink);
+        color: var(--panel);
+        box-shadow: none;
+      }
+
+      .interaction-row.is-active .sound-icon {
+        transform: translate(2px, 3px);
+        background: var(--ink);
+        color: var(--panel);
+      }
+
+      .mode-note {
+        display: none;
+        color: inherit;
+        font-size: 15px;
+        line-height: 1.15;
+        opacity: 0.82;
+      }
+
+      .output {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        overflow: hidden;
+      }
+
+      .output-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(230px, 0.8fr);
+        gap: 16px;
+        border-bottom: 4px solid var(--ink);
+        padding: 22px 26px 18px;
+      }
+
+      .output-header h1 {
+        font-size: clamp(31px, 5vw, 58px);
+        line-height: 0.92;
+      }
+
+      .status-card {
+        border: 3px solid var(--ink);
+        border-radius: 18px;
+        padding: 13px 15px;
+        background: var(--panel);
+      }
+
+      .status-card h2 {
+        margin: 0 0 9px;
+        font-size: clamp(19px, 2.2vw, 31px);
+        line-height: 0.95;
+      }
+
+      .status-card p {
+        color: var(--muted);
+        font-size: clamp(14px, 1.4vw, 19px);
+        line-height: 1.15;
+      }
+
+      .badge {
+        display: inline-block;
+        margin-bottom: 10px;
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        padding: 8px 13px;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+
+      .demo-stage {
+        display: grid;
+        align-content: start;
+        gap: 18px;
+        padding: clamp(24px, 4vw, 48px);
+      }
+
+      .input-box {
+        display: none;
+        border: 3px solid var(--ink);
+        border-radius: 18px;
+        padding: 16px 18px;
+        background: #f0ede4;
+        font-size: clamp(18px, 2vw, 25px);
+        line-height: 1.2;
+      }
+
+      .input-box.is-visible {
+        display: block;
+      }
+
+      .script-context {
+        display: grid;
+        gap: 12px;
+      }
+
+      .script-label {
+        display: inline-block;
+        width: fit-content;
+        border-bottom: 3px solid var(--ink);
+        font-size: 0.78em;
+        line-height: 1;
+      }
+
+      .script-body {
+        border: 3px solid var(--ink);
+        border-radius: 14px;
+        background: var(--panel);
+        padding: 14px 16px;
+      }
+
+      .highlight {
+        display: inline;
+        border-radius: 7px;
+        background: var(--ink);
+        color: var(--panel);
+        padding: 0 5px 2px;
+      }
+
+      .voice-command {
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--panel);
+        padding: 9px 13px;
+      }
+
+      .output-box {
+        min-height: 330px;
+        border: 4px solid var(--ink);
+        border-radius: 22px;
+        padding: clamp(20px, 3vw, 34px);
+        font-size: clamp(25px, 3.7vw, 50px);
+        line-height: 1.05;
+      }
+
+      .label {
+        display: inline-block;
+        margin-bottom: 18px;
+        border-bottom: 3px solid var(--ink);
+        font-size: clamp(17px, 1.8vw, 24px);
+        line-height: 1;
+      }
+
+      .demo-text {
+        white-space: pre-wrap;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 0.42em;
+        height: 0.95em;
+        margin-left: 2px;
+        background: var(--ink);
+        vertical-align: -0.1em;
+        animation: blink 900ms steps(2, start) infinite;
+      }
+
+      .controls {
+        display: none;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .control-button {
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 16px;
+        padding: 8px 14px;
+        box-shadow: 2px 3px 0 var(--ink);
+      }
+
+      .control-button:active {
+        transform: translate(2px, 3px);
+        box-shadow: none;
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+          padding: 14px;
+        }
+
+        .panel {
+          border-radius: 22px;
+          box-shadow: 5px 6px 0 var(--ink);
+        }
+
+        .output-header {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="home-link" href="../">← Murmur home</a>
+    <main class="app">
+      <section class="panel interactions" aria-label="Murmur interaction states">
+        <div class="header">
+          <h1>Murmur demo states</h1>
+          <div class="status" id="status">row 1 active</div>
+        </div>
+
+        <div class="flow" id="flow">
+          <button class="interaction-row is-active" type="button" data-index="0">
+            <div class="row-top">
+              <span class="number">1</span>
+              <h2>only Fn is held</h2>
+            </div>
+            <div class="keys">
+              <span class="keycap fn-key" aria-label="Globe Fn">
+                <svg class="globe-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M3 12h18"></path>
+                  <path d="M12 3a14 14 0 0 1 0 18"></path>
+                  <path d="M12 3a14 14 0 0 0 0 18"></path>
+                </svg>
+                <span>fn</span>
+              </span>
+              <span class="sound-icon" aria-label="sound wave">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 12h2"></path>
+                  <path d="M9 8v8"></path>
+                  <path d="M13 5v14"></path>
+                  <path d="M17 8v8"></path>
+                  <path d="M21 11v2"></path>
+                </svg>
+              </span>
+            </div>
+            <p class="mode-note">transcribe what you say</p>
+          </button>
+
+          <button class="interaction-row" type="button" data-index="1">
+            <div class="row-top">
+              <span class="number">2</span>
+              <h2>Fn + control, no content selected</h2>
+            </div>
+            <div class="keys">
+              <span class="keycap fn-key" aria-label="Globe Fn">
+                <svg class="globe-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M3 12h18"></path>
+                  <path d="M12 3a14 14 0 0 1 0 18"></path>
+                  <path d="M12 3a14 14 0 0 0 0 18"></path>
+                </svg>
+                <span>fn</span>
+              </span>
+              <span class="keycap">control</span>
+              <span class="sound-icon" aria-label="sound wave">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 12h2"></path>
+                  <path d="M9 8v8"></path>
+                  <path d="M13 5v14"></path>
+                  <path d="M17 8v8"></path>
+                  <path d="M21 11v2"></path>
+                </svg>
+              </span>
+            </div>
+            <p class="mode-note">start a rewrite session with AI</p>
+          </button>
+
+          <button class="interaction-row" type="button" data-index="2">
+            <div class="row-top">
+              <span class="number">3</span>
+              <h2>Fn + control, content selected</h2>
+            </div>
+            <div class="keys">
+              <span class="keycap fn-key" aria-label="Globe Fn">
+                <svg class="globe-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M3 12h18"></path>
+                  <path d="M12 3a14 14 0 0 1 0 18"></path>
+                  <path d="M12 3a14 14 0 0 0 0 18"></path>
+                </svg>
+                <span>fn</span>
+              </span>
+              <span class="keycap">control</span>
+              <span class="keycap">selected text</span>
+              <span class="sound-icon" aria-label="sound wave">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 12h2"></path>
+                  <path d="M9 8v8"></path>
+                  <path d="M13 5v14"></path>
+                  <path d="M17 8v8"></path>
+                  <path d="M21 11v2"></path>
+                </svg>
+              </span>
+            </div>
+            <p class="mode-note">rewrite with highlighted context</p>
+          </button>
+        </div>
+
+        <div class="controls" aria-label="Demo controls">
+          <button class="control-button" type="button" id="previous">previous</button>
+          <button class="control-button" type="button" id="next">next</button>
+          <button class="control-button" type="button" id="play">auto demo</button>
+        </div>
+      </section>
+
+      <section class="panel output" aria-live="polite" aria-label="Murmur demo output">
+        <div class="output-header">
+          <h1>Murmur output</h1>
+          <div class="status-card">
+            <div class="badge" id="badge">Fn</div>
+            <h2 id="statusTitle">transcription demo</h2>
+            <p id="statusDetail">Murmur listens, transcribes, and pastes clean text.</p>
+          </div>
+        </div>
+
+        <div class="demo-stage">
+          <div class="input-box" id="inputBox"></div>
+
+          <div class="output-box">
+            <span class="label" id="outputLabel">actual output</span>
+            <div class="demo-text" id="demoText"></div><span class="cursor" aria-hidden="true"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const states = [
+        {
+          badge: "Fn",
+          status: "row 1 active: Fn held",
+          statusTitle: "transcription demo",
+          statusDetail: "Murmur listens, transcribes, and pastes clean text.",
+          inputHtml: '<div class="script-context"><span class="script-label">voice input</span><div class="voice-command">quick meeting update spoken into Murmur</div></div>',
+          label: "actual output",
+          text: "Okay, here is the quick update from our meeting. The new onboarding flow is ready for testing, and I will send the notes by Friday.",
+        },
+        {
+          badge: "Fn + control",
+          status: "row 2 active: Fn + control held",
+          statusTitle: "AI rewrite",
+          statusDetail: "Rewrite session with AI, without selected context.",
+          inputHtml: '<div class="script-context"><span class="script-label">voice input</span><div class="voice-command">thank you for your update, blah blah, I looked at the plan and maybe we should do the smaller launch first and then expand after we see how people use it</div></div>',
+          label: "actual output",
+          text: "Thanks for the update. I reviewed the plan and recommend we start with the smaller launch, learn from usage, and expand from there.",
+        },
+        {
+          badge: "Fn + control + selection",
+          status: "row 3 active: selected context included",
+          statusTitle: "AI rewrite with context",
+          statusDetail: "Rewrite using the selected context.",
+          inputHtml: '<div class="script-context"><span class="script-label">full script with selected text</span><div class="script-body">Team update draft: We finished QA on the onboarding changes. <span class="highlight">The launch is blocked until legal approves the final privacy wording.</span> Once that review is complete, we can publish the release notes and notify support.</div><div class="voice-command">voice input: make this clear and calm</div></div>',
+          label: "actual output",
+          text: "Team update draft: We finished QA on the onboarding changes. The launch can proceed after legal approves the final privacy wording, and I will keep the team updated on the revised timeline. Once that review is complete, we can publish the release notes and notify support.",
+        },
+      ];
+
+      const rows = [...document.querySelectorAll(".interaction-row")];
+      const status = document.getElementById("status");
+      const badge = document.getElementById("badge");
+      const statusTitle = document.getElementById("statusTitle");
+      const statusDetail = document.getElementById("statusDetail");
+      const inputBox = document.getElementById("inputBox");
+      const outputLabel = document.getElementById("outputLabel");
+      const demoText = document.getElementById("demoText");
+      const previous = document.getElementById("previous");
+      const next = document.getElementById("next");
+      const play = document.getElementById("play");
+      let activeIndex = 0;
+      let timer = null;
+      let hasInteracted = false;
+
+      function render(index) {
+        activeIndex = (index + states.length) % states.length;
+        const state = states[activeIndex];
+
+        rows.forEach((row, rowIndex) => {
+          row.classList.toggle("is-active", rowIndex === activeIndex);
+        });
+
+        status.textContent = state.status;
+        badge.textContent = state.badge;
+        statusTitle.textContent = state.statusTitle;
+        statusDetail.textContent = state.statusDetail;
+        inputBox.innerHTML = state.inputHtml;
+        inputBox.classList.toggle("is-visible", Boolean(state.inputHtml));
+        outputLabel.textContent = state.label;
+        demoText.textContent = state.text;
+      }
+
+      function stopAutoDemo() {
+        if (!timer) {
+          return;
+        }
+
+        window.clearInterval(timer);
+        timer = null;
+        play.textContent = "auto demo";
+      }
+
+      function startAutoDemo() {
+        if (timer) {
+          return;
+        }
+
+        play.textContent = "pause demo";
+        timer = window.setInterval(() => render(activeIndex + 1), 2200);
+      }
+
+      rows.forEach((row) => {
+        row.addEventListener("click", () => {
+          hasInteracted = true;
+          stopAutoDemo();
+          render(Number(row.dataset.index));
+        });
+      });
+
+      previous.addEventListener("click", () => {
+        hasInteracted = true;
+        stopAutoDemo();
+        render(activeIndex - 1);
+      });
+
+      next.addEventListener("click", () => {
+        hasInteracted = true;
+        stopAutoDemo();
+        render(activeIndex + 1);
+      });
+
+      play.addEventListener("click", () => {
+        if (timer) {
+          hasInteracted = true;
+          stopAutoDemo();
+          return;
+        }
+
+        startAutoDemo();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+          hasInteracted = true;
+          stopAutoDemo();
+          render(activeIndex + 1);
+        }
+
+        if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+          hasInteracted = true;
+          stopAutoDemo();
+          render(activeIndex - 1);
+        }
+      });
+
+      requestAnimationFrame(() => {
+        render(0);
+        window.setTimeout(() => {
+          if (!hasInteracted) {
+            startAutoDemo();
+          }
+        }, 900);
+      });
+    </script>
+  </body>
+</html>
