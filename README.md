@@ -1,69 +1,55 @@
 # Murmur
 
-Murmur is a macOS voice keyboard for people who think faster than they type. Hold one key, speak, release, and your words appear in the app you were already using.
+Murmur is an open-source macOS voice keyboard.
 
-- **Hold Fn** → raw local transcription
-- **Hold Fn + Control** → transcription plus AI rewrite/polish
-- **Release** → Murmur auto-pastes into the active app
-- **Highlight text first** → AI mode uses the selection as context
+Hold **Fn**, speak, release — text appears where your cursor is.  
+Hold **Fn + Control** to rewrite with AI.  
+Select text first to use it as context.
 
-Murmur supports English only for now.
+**English only. Free. Open source.**
 
-Launch page: <https://murmur.luciana.digital>
+Website: <https://murmur.luciana.digital>
 
-## Demo Video Script
+## Why it exists
 
-“Murmur is a voice keyboard for Mac. Hold `Fn`, speak, release, and your words appear right where your cursor is.”
+Typing interrupts thought. Murmur lets you speak into the app you are already using.
 
-“For rough thoughts, hold `Fn + Control`. Murmur transcribes, rewrites with AI, and pastes the polished version.”
+Use it for:
 
-“If I highlight text first, Murmur uses that selection as context. I can say, ‘reply warmly and ask if Friday works,’ and it writes the response for me.”
+- Slack replies
+- emails
+- notes
+- tasks
+- AI prompts
 
-“Raw dictation runs locally. AI mode sends text, not audio. Murmur is not a meeting recorder; it is a faster way to write inside the apps I already use.”
+## How it works
 
-## Why Murmur
+| Action | Result |
+|---|---|
+| Hold **Fn** | local dictation |
+| Hold **Fn + Control** | AI rewrite |
+| Select text + **Fn + Control** | context-aware rewrite |
+| Release | paste into the active app |
 
-Murmur is built for the small but constant friction of writing on a Mac: the half-written Slack reply, the email you keep postponing, the thought you lose while switching tabs, and the prompt that needs to sound more polished than your first draft.
+Raw dictation runs locally with WhisperKit. AI mode sends text, not audio, to OpenAI.
 
-### Three Things It Makes Better
+## Install
 
-- **Capture thoughts before they disappear.** Hold `Fn`, say the sentence, release, and Murmur drops clean text into the current field. No separate recorder, no transcript window to manage, no copy/paste ritual.
-- **Turn rough speech into usable writing.** Hold `Fn + Control` when you want Murmur to rewrite the transcript with your prompt, so a messy spoken note can become a clear email, reply, task, or AI prompt.
-- **Respond with context.** Highlight text in the current app, hold `Fn + Control`, and say what you want. Murmur uses the selected text as context, so "make this warmer" or "reply yes and ask for Friday" can produce a finished response.
-- **Keep your workflow intact.** Murmur runs from the menu bar, uses local Whisper transcription for raw dictation, restores your clipboard after paste, and keeps one vocabulary file in plain text so names, commands, and domain jargon stay under your control.
-
-### Who It Helps
-
-- **Everyone** who answers messages all day and needs to move from thought to polished text without opening another tool.
-
-
-### Positioning
-
-Murmur is a lightweight voice keyboard: a faster way to put words exactly where your cursor already is, with optional AI polish when the first spoken version is not the final one.
-
-## Requirements
-
-- macOS 14+
-- Apple Silicon recommended
-- Xcode / Swift toolchain to build from source
-- OpenAI API key for `Fn + Control` polish mode
-
-## Install Murmur
+Requires macOS 14+. Apple Silicon recommended.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash
 ```
 
-First launch setup:
+Then grant:
 
-1. Grant Microphone access when prompted.
-2. Open System Settings → Privacy & Security and enable Murmur for Input Monitoring and Accessibility.
-3. Quit and relaunch Murmur after granting permissions.
-4. Add your OpenAI key from the menu-bar icon → Settings if you want `Fn + Control` polish mode.
+- Microphone
+- Input Monitoring
+- Accessibility
 
-Selection context requires Accessibility permission. Murmur first asks the frontmost app for highlighted text, then falls back to a temporary Cmd+C capture while preserving your clipboard. If neither path works, it continues without context and logs the reason in the Debug Panel.
+Add an OpenAI API key in Settings for AI rewrite mode.
 
-## Build locally
+## Build from source
 
 ```bash
 swift build
@@ -71,5 +57,15 @@ swift build
 open dist/Murmur.app
 ```
 
+## Repo structure
+
+```text
+Sources/       macOS app source
+Resources/     app icon assets
+launch-site/   public website
+scripts/       icon generation helper
+```
+
 ## License
+
 MIT
