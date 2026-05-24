@@ -20,8 +20,8 @@ actor Transcriber {
         self.modelName = modelName
     }
 
-    /// First call downloads the model (~74MB for base.en) to
-    /// ~/Library/Application Support/. Subsequent calls are instant.
+    /// First call downloads the model (~74MB for base.en) to Application
+    /// Support. Subsequent calls reuse the local model.
     private func ensureLoaded() async throws {
         if whisperKit != nil { return }
 
@@ -64,10 +64,19 @@ actor Transcriber {
     }
 
     private func modelDownloadBase() -> URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents", isDirectory: true)
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first ?? FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+
+        let base = appSupport
+            .appendingPathComponent("Murmur", isDirectory: true)
             .appendingPathComponent("huggingface", isDirectory: true)
             .appendingPathComponent("models", isDirectory: true)
+        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
+        return base
     }
 
     func transcribe(audioURL: URL) async throws -> String {

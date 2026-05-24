@@ -80,10 +80,10 @@ cat <<'EOF'
     3. Quit Murmur from the menu bar, then relaunch it (macOS only
        applies these permissions on the next launch).
     4. Click the menu bar icon → Settings → paste your OpenAI key
-       (only needed for the F6 polish hotkey).
+       (only needed for Fn + Control AI rewrite).
 
   Usage:
-    • Hold F5 to dictate (raw transcription, fully local).
-    • Hold F6 to dictate + polish via GPT.
+    • Hold Fn to dictate (raw transcription, fully local).
+    • Hold Fn + Control to dictate + rewrite via GPT.
 
 EOF

@@ -2,7 +2,7 @@
 
 ## Source product description
 
-Murmur is a macOS menu-bar dictation app for people who want speech-to-text without switching context. Hold **F5** for fast local raw transcription, or hold **F6** to transcribe and polish with an LLM. It auto-pastes into the current app and keeps a plain-text vocabulary file so your jargon, names, and corrections stay yours.
+Murmur is a macOS menu-bar dictation app for people who want speech-to-text without switching context. Hold **Fn** for fast local raw transcription, or hold **Fn + Control** to transcribe and polish with an LLM. It auto-pastes into the current app and keeps a plain-text vocabulary file so your jargon, names, and correction pairs stay yours.
 
 ## Positioning
 
@@ -16,7 +16,7 @@ Murmur is a macOS menu-bar dictation app for people who want speech-to-text with
 1. Hold a key. Say the thought. Get polished text.
 2. Dictation for Mac people who hate context switching.
 3. A tiny menu-bar app that turns speech into ready-to-send text.
-4. Press F5 for raw dictation. Press F6 for polished writing.
+4. Hold Fn for raw dictation. Hold Fn + Control for polished writing.
 5. Speak into any app on your Mac.
 6. Voice notes that land exactly where your cursor is.
 7. Local-first Mac dictation with optional AI polish.
@@ -33,7 +33,7 @@ Murmur
 Hold a key, speak, and Murmur pastes clean text into any Mac app.
 
 ### Short description
-Murmur is a macOS menu-bar dictation app with hold-to-record hotkeys, local Whisper transcription, optional LLM polish, auto-paste, and plain-text vocabulary learning.
+Murmur is a macOS menu-bar dictation app with hold-to-record hotkeys, local Whisper transcription, optional LLM polish, auto-paste, and editable plain-text vocabulary.
 
 ### Topics
 Productivity, Artificial Intelligence, Mac, Writing Tools, Developer Tools
@@ -41,8 +41,8 @@ Productivity, Artificial Intelligence, Mac, Writing Tools, Developer Tools
 ### Gallery image concepts
 
 1. **Hero:** Menu-bar waveform icon + large headline: “Speak anywhere on your Mac.”
-2. **Workflow:** F5 → local transcript → paste; F6 → polish → paste.
-3. **Privacy:** local raw dictation + editable vocabulary files.
+2. **Workflow:** Fn → local transcript → paste; Fn + Control → polish → paste.
+3. **Privacy:** local raw dictation + an editable vocabulary file.
 4. **Power-user:** jargon examples: kubectl, GraphQL, founder names, product names.
 
 ### Full listing copy
@@ -51,8 +51,8 @@ Most dictation tools make you open a separate app, record, copy, edit, then past
 
 Murmur gives you two modes:
 
-- **Hold F5** for raw local transcription.
-- **Hold F6** for transcription plus LLM polish.
+- **Hold Fn** for raw local transcription.
+- **Hold Fn + Control** for transcription plus LLM polish.
 
 It also includes auto-paste and a plain-text vocabulary system, so your recurring jargon and names can be preserved without hiding everything inside a black-box database.
 
@@ -62,9 +62,9 @@ The current build is an early prototype for macOS 14+ and Apple Silicon. It is e
 
 Hey Product Hunt — I built Murmur because I kept wanting one tiny thing: a push-to-talk key for my Mac that writes into whatever app I’m already using.
 
-Most dictation flows make me leave the place where I’m thinking. Murmur stays out of the way: hold F5 for raw transcription, or F6 if you want the text cleaned up with an LLM, then it auto-pastes at the cursor.
+Most dictation flows make me leave the place where I’m thinking. Murmur stays out of the way: hold Fn for raw transcription, or Fn + Control if you want the text cleaned up with an LLM, then it auto-pastes at the cursor.
 
-A small detail I care about: vocabulary is plain text. If you have product names, people’s names, CLI commands, or weird startup jargon, you should be able to see and edit what the app learns.
+A small detail I care about: vocabulary is plain text. If you have product names, people’s names, CLI commands, or weird startup jargon, you should be able to see and edit the terms the app uses.
 
 It’s early/prototype-y, but already useful if you spend your day turning thoughts into Slack messages, notes, specs, emails, and issues. I’d love feedback from Mac power users, especially people who have tried other dictation tools and bounced because the workflow felt too heavy.
 
@@ -78,8 +78,8 @@ Hold a key → speak → release → Murmur pastes the text at your cursor.
 **Tweet 2**
 Two modes:
 
-F5 = raw local transcription
-F6 = transcribe + polish with an LLM
+Fn = raw local transcription
+Fn + Control = transcribe + polish with an LLM
 
 So you can choose speed/privacy or cleaned-up writing depending on what you’re doing.
 
@@ -94,7 +94,7 @@ Quick note? Hold key and talk.
 No separate recording app. No copy/paste loop.
 
 **Tweet 4**
-Murmur also has editable vocabulary files.
+Murmur also has an editable vocabulary file.
 
 If you say names, product terms, commands, or domain jargon all day, the app should let you control that directly — plain text, no opaque database.
 
@@ -113,10 +113,10 @@ The idea is simple: your cursor is already in the place where the thought needs 
 
 With Murmur:
 
-- Hold **F5** for raw local transcription.
-- Hold **F6** for transcription plus LLM polish.
+- Hold **Fn** for raw local transcription.
+- Hold **Fn + Control** for transcription plus LLM polish.
 - Release the key and the result auto-pastes into the active app.
-- Keep custom vocabulary in plain-text files, so jargon and names stay editable.
+- Keep custom vocabulary in a plain-text file, so jargon and names stay editable.
 
 I built it for the daily flood of Slack replies, notes, emails, specs, issues, comments, and half-formed thoughts that are easier to say than type.
 
@@ -138,7 +138,7 @@ I’m launching an early prototype of Murmur, a macOS menu-bar dictation app.
 The workflow is intentionally tiny:
 
 1. Put your cursor anywhere.
-2. Hold F5 for raw transcription or F6 for LLM-polished text.
+2. Hold Fn for raw transcription or Fn + Control for LLM-polished text.
 3. Speak.
 4. Release and Murmur pastes the result into the active app.
 
@@ -161,7 +161,7 @@ You record somewhere else, wait, copy, edit, paste, then return to your original
 
 Murmur takes the opposite approach. It acts like an input layer for your Mac. Hold a key and speak directly into the app you were already using.
 
-Raw mode stays local. Polish mode can clean up the text with an LLM. Vocabulary is stored in plain-text files so names, commands, and jargon remain editable.
+Raw mode stays local. Polish mode can clean up the text with an LLM. Vocabulary is stored in a plain-text file so names, commands, and jargon remain editable.
 
 Early build: https://murmur.luciana.digital
 
@@ -199,9 +199,9 @@ Hi {{first_name}},
 I’m looking for blunt feedback on Murmur’s core workflow:
 
 - Is hold-to-record the right interaction?
-- Do F5/F6 feel memorable?
+- Do Fn/Fn + Control feel natural enough?
 - Where does auto-paste feel magical vs. risky?
-- What should vocabulary learning preserve better?
+- What should editable vocabulary preserve better?
 - What would make this good enough to keep running all day?
 
 If you’re a Mac power user, founder, writer, or developer, you’re probably the right person to stress-test it.

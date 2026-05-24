@@ -15,8 +15,8 @@ enum ClipboardWriter {
     static func copy(_ text: String, autoPaste: Bool, targetApp: NSRunningApplication?) {
         let pasteboard = NSPasteboard.general
 
-        // Snapshot existing clipboard so we can restore.
-        let previous = pasteboard.string(forType: .string)
+        // Snapshot every pasteboard item/type, not just plain text.
+        let previous = PasteboardSnapshot(pasteboard)
 
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
@@ -48,11 +48,8 @@ enum ClipboardWriter {
             simulateCmdV()
 
             // Restore the previous clipboard after paste completes.
-            if let previous = previous {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    pasteboard.clearContents()
-                    pasteboard.setString(previous, forType: .string)
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                previous.restore(to: pasteboard)
             }
         }
     }

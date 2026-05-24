@@ -1,6 +1,6 @@
 //
 //  DictationCoordinator.swift
-//  Pipeline: hotkey -> record -> transcribe -> (LLM polish + learn) -> paste.
+//  Pipeline: hotkey -> record -> transcribe -> optional LLM polish -> paste.
 //
 
 import Cocoa
@@ -19,6 +19,8 @@ final class DictationCoordinator {
     private let transcriber = Transcriber()
     private let hotkeys = HotkeyManager()
     private var activeMode: DictationMode?
+    private var isProcessing = false
+    private var currentSessionID: UUID?
     private var targetApp: NSRunningApplication?
     private var selectedContext: String?
 
@@ -57,12 +59,15 @@ final class DictationCoordinator {
     }
 
     private func handlePress(_ mode: DictationMode) {
-        guard activeMode == nil else {
-            DebugLog.shared.add("Ignoring press; already recording/processing mode=\(String(describing: activeMode))")
+        guard activeMode == nil, !isProcessing else {
+            DebugLog.shared.add("Ignoring press; already recording or processing mode=\(String(describing: activeMode))")
             return
         }
+        let sessionID = UUID()
         activeMode = mode
+        currentSessionID = sessionID
         targetApp = currentTargetApp()
+        selectedContext = nil
         DebugLog.shared.add("Recording started, mode=\(mode == .raw ? "raw" : "llm")")
         if let targetApp {
             DebugLog.shared.add("Target app captured: \(targetApp.localizedName ?? targetApp.bundleIdentifier ?? "<unknown>")")
@@ -70,22 +75,20 @@ final class DictationCoordinator {
             DebugLog.shared.add("No non-Murmur target app captured; paste will use current frontmost app")
         }
 
+        startRecording(mode)
+
         if mode == .llm {
             SelectionReader.selectedText(in: targetApp) { [weak self] context in
                 Task { @MainActor in
-                    guard let self, self.activeMode == mode else { return }
+                    guard let self, self.currentSessionID == sessionID else { return }
                     self.selectedContext = context
                     if let context {
-                        DebugLog.shared.add("AI mode will use selected context: \(String(context.prefix(160)))")
+                        DebugLog.shared.add("AI mode captured selected context with \(context.count) character(s)")
                     } else {
                         DebugLog.shared.add("AI mode proceeding without selected context")
                     }
-                    self.startRecording(mode)
                 }
             }
-        } else {
-            selectedContext = nil
-            startRecording(mode)
         }
     }
 
@@ -100,7 +103,9 @@ final class DictationCoordinator {
             DebugLog.shared.add("Ignoring release for mode=\(mode == .raw ? "raw" : "llm"); activeMode=\(String(describing: activeMode))")
             return
         }
+        let sessionID = currentSessionID
         activeMode = nil
+        isProcessing = true
         DebugLog.shared.add("Recording release accepted; stopping recorder")
         onStateChange?(.processing)
         StatusBarController.shared.setProcessing(true)
@@ -108,24 +113,27 @@ final class DictationCoordinator {
         recorder.stop { [weak self] audioURL in
             guard let self, let audioURL else {
                 DebugLog.shared.add("Recorder returned no usable audio file")
+                self?.isProcessing = false
+                self?.currentSessionID = nil
+                self?.selectedContext = nil
                 self?.onStateChange?(.error("Recording failed"))
                 StatusBarController.shared.setError("Recording failed")
                 return
             }
             DebugLog.shared.add("Recorder returned audio file: \(audioURL.path)")
             Task {
-                await self.process(audioURL: audioURL, mode: mode)
+                await self.process(audioURL: audioURL, mode: mode, sessionID: sessionID)
             }
         }
     }
 
-    private func process(audioURL: URL, mode: DictationMode) async {
+    private func process(audioURL: URL, mode: DictationMode, sessionID: UUID?) async {
         do {
             DebugLog.shared.add("Transcription started")
             let transcript = try await transcriber.transcribe(audioURL: audioURL)
-            DebugLog.shared.add("Transcription finished: \(transcript.isEmpty ? "<empty>" : transcript)")
+            DebugLog.shared.add("Transcription finished with \(transcript.count) character(s)")
             guard !transcript.isEmpty else {
-                selectedContext = nil
+                finishSession(sessionID)
                 onStateChange?(.idle)
                 StatusBarController.shared.setIdle()
                 return
@@ -143,18 +151,10 @@ final class DictationCoordinator {
                 )
                 finalText = result.polished
 
-                // Feed any non-trivial corrections back into the vocabulary.
-                // No-op when "Learn from corrections" is disabled in settings.
-                for fix in result.corrections {
-                    Vocabulary.shared.recordLearned(
-                        mishearing: fix.from,
-                        correction: fix.to
-                    )
-                }
             }
 
             ClipboardWriter.copy(finalText, autoPaste: autoPaste, targetApp: targetApp)
-            selectedContext = nil
+            finishSession(sessionID)
             DebugLog.shared.add("Copied final text; autoPaste=\(autoPaste)")
             onStateChange?(.idle)
             StatusBarController.shared.setIdle()
@@ -163,9 +163,17 @@ final class DictationCoordinator {
             DebugLog.shared.add("Pipeline error: \(error.localizedDescription)")
             onStateChange?(.error(error.localizedDescription))
             StatusBarController.shared.setError(error.localizedDescription)
-            selectedContext = nil
+            finishSession(sessionID)
             print("Pipeline error: \(error)")
         }
+    }
+
+    private func finishSession(_ sessionID: UUID?) {
+        if currentSessionID == sessionID {
+            currentSessionID = nil
+        }
+        isProcessing = false
+        selectedContext = nil
     }
 
     private func currentTargetApp() -> NSRunningApplication? {

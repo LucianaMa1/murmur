@@ -32,7 +32,7 @@ Powered by [WhisperKit] running on the Apple Neural Engine — your audio never 
 ## Quick install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lucianaMa/murmur/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash
 ```
 
 This will:
@@ -92,7 +92,7 @@ Murmur is for the moments when typing is the bottleneck: the Slack reply you can
 - **Capture thoughts before they disappear.** Hold Fn, speak naturally, release, and the words land in the field you were already using. There is no transcript inbox to clean up later.
 - **Turn rough speech into usable writing.** Hold Fn + Control when you want Murmur to rewrite with your saved prompt, so a rambling spoken note can become a polished email, task, reply, or prompt.
 - **Reply with context.** Highlight text first, then use Fn + Control and say what you want. Murmur can use the selected content as context for instructions like "make this shorter", "reply warmly", or "turn this into a prompt".
-- **Keep control of your workflow.** Raw dictation runs locally, polish mode sends text only, auto-paste restores your clipboard, and vocabulary files stay plain-text so your names, commands, and domain terms remain inspectable.
+- **Keep control of your workflow.** Raw dictation runs locally, polish mode sends text only, auto-paste restores your clipboard, and one vocabulary file stays plain-text so your names, commands, and domain terms remain inspectable.
 
 ### Who It Helps
 
@@ -168,7 +168,7 @@ init(modelName: String = "openai_whisper-base.en") {
 //          large-v3-turbo (1.5GB, most accurate)
 ```
 
-Models download automatically on first use to `~/Library/Application Support/`.
+Models download automatically on first use to `~/Library/Application Support/Murmur/`.
 
 ---
 
@@ -197,20 +197,10 @@ Edit it from the menu bar (`Edit Vocabulary…`) or directly in any editor. Ever
 
 This works because LLMs have huge context windows (the prompt holds hundreds of terms easily) and actually understand context — they know "deploy to the cubicle cluster" makes no sense and your vocabulary explains what you actually meant.
 
-### Optional: learn from corrections
-
-In Settings, enable **Learn from corrections**. When you use Fn + Control and the LLM makes a non-trivial substitution (like `cubicle → kubectl`), Murmur appends it to `~/.murmur/learned.txt`.
-
-That file is plain text. You can read it, edit it, version-control it, sync it across machines, or wipe it whenever you like. Murmur won't ever surprise you with what it has learned — the answer is always one `cat ~/.murmur/learned.txt` away.
-
-This is **off by default**. Murmur stores nothing about you unless you turn this on.
-
----
-
 ## Building from source
 
 ```bash
-git clone https://github.com/lucianaMa/murmur.git
+git clone https://github.com/LucianaMa1/murmur.git
 cd murmur
 ./build.sh
 open dist/Murmur.app

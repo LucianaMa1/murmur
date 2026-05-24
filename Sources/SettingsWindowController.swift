@@ -36,7 +36,6 @@ final class SettingsWindowController {
 struct SettingsView: View {
     @AppStorage("openai_model") private var model: String = "gpt-4o-mini"
     @AppStorage("auto_paste") private var autoPaste: Bool = true
-    @AppStorage("vocab_learn_enabled") private var learnEnabled: Bool = false
     @AppStorage("llm_system_prompt") private var prompt: String = OpenAIClient.defaultSystemPrompt
     @AppStorage(FloatingControlsPreferences.enabledKey) private var floatingControlsEnabled: Bool = true
     @AppStorage(FloatingControlsPreferences.accentKey) private var floatingControlsAccent: String = "mint"
@@ -133,7 +132,7 @@ struct SettingsView: View {
 
                 GroupBox("Vocabulary") {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Murmur uses your vocabulary list to fix mishearings of jargon and proper nouns when using polished transcription.")
+                        Text("Murmur uses ~/.murmur/vocabulary.txt to fix misheard jargon, names, and commands in AI rewrite mode. Raw local transcription is unchanged.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -142,24 +141,7 @@ struct SettingsView: View {
                             Button("Edit Vocabulary…") {
                                 Vocabulary.shared.openUserFileInEditor()
                             }
-                            Button("Open Learned File") {
-                                Vocabulary.shared.openLearnedFileInEditor()
-                            }
                             Spacer()
-                        }
-
-                        Toggle("Learn from corrections", isOn: $learnEnabled)
-
-                        Text("When enabled, Murmur will record any non-trivial corrections the LLM makes (e.g. \"cubicle\" → \"kubectl\") into ~/.murmur/learned.txt. You can review or wipe this file at any time.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if learnEnabled {
-                            Button("Forget what Murmur has learned") {
-                                Vocabulary.shared.resetLearned()
-                            }
-                            .font(.caption)
                         }
                     }
                     .padding(.vertical, 4)

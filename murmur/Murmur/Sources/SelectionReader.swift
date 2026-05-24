@@ -76,7 +76,7 @@ enum SelectionReader {
         }
 
         let pasteboard = NSPasteboard.general
-        let previousString = pasteboard.string(forType: .string)
+        let previous = PasteboardSnapshot(pasteboard)
         let marker = "murmur-selection-marker-\(UUID().uuidString)"
 
         pasteboard.clearContents()
@@ -94,12 +94,7 @@ enum SelectionReader {
                 let copied = pasteboard.string(forType: .string)?
                     .trimmingCharacters(in: .whitespacesAndNewlines)
 
-                if let previousString {
-                    pasteboard.clearContents()
-                    pasteboard.setString(previousString, forType: .string)
-                } else {
-                    pasteboard.clearContents()
-                }
+                previous.restore(to: pasteboard)
 
                 guard let copied,
                       !copied.isEmpty,

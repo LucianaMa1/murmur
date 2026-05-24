@@ -30,11 +30,11 @@ Murmur is built for the small but constant friction of writing on a Mac: the hal
 - **Capture thoughts before they disappear.** Hold `Fn`, say the sentence, release, and Murmur drops clean text into the current field. No separate recorder, no transcript window to manage, no copy/paste ritual.
 - **Turn rough speech into usable writing.** Hold `Fn + Control` when you want Murmur to rewrite the transcript with your prompt, so a messy spoken note can become a clear email, reply, task, or AI prompt.
 - **Respond with context.** Highlight text in the current app, hold `Fn + Control`, and say what you want. Murmur uses the selected text as context, so "make this warmer" or "reply yes and ask for Friday" can produce a finished response.
-- **Keep your workflow intact.** Murmur runs from the menu bar, uses local Whisper transcription for raw dictation, restores your clipboard after paste, and keeps vocabulary files plain-text so names, commands, and domain jargon stay under your control.
+- **Keep your workflow intact.** Murmur runs from the menu bar, uses local Whisper transcription for raw dictation, restores your clipboard after paste, and keeps one vocabulary file in plain text so names, commands, and domain jargon stay under your control.
 
 ### Who It Helps
 
-- **Everyone** who answer messages all day and need to move from thought to polished text without opening another tool.
+- **Everyone** who answers messages all day and needs to move from thought to polished text without opening another tool.
 
 
 ### Positioning
@@ -61,7 +61,7 @@ First launch setup:
 3. Quit and relaunch Murmur after granting permissions.
 4. Add your OpenAI key from the menu-bar icon → Settings if you want `Fn + Control` polish mode.
 
-Selection context requires Accessibility permission and depends on whether the frontmost app exposes highlighted text to macOS Accessibility. If an app does not expose the selection, Murmur continues without context and logs the reason in the Debug Panel.
+Selection context requires Accessibility permission. Murmur first asks the frontmost app for highlighted text, then falls back to a temporary Cmd+C capture while preserving your clipboard. If neither path works, it continues without context and logs the reason in the Debug Panel.
 
 ## Build locally
 

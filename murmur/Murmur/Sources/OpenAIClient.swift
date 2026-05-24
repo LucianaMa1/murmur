@@ -1,8 +1,7 @@
 //
 //  OpenAIClient.swift
 //  Sends the transcript to OpenAI for polishing, with vocabulary context.
-//  Returns the polished text AND any "learned" corrections so the
-//  Vocabulary store can record them.
+//  Returns plain paste-ready text.
 //
 
 import Foundation
@@ -23,9 +22,6 @@ enum OpenAIError: Error, LocalizedError {
 
 struct PolishResult {
     let polished: String
-    /// Pairs of (original, corrected) tokens the model fixed beyond simple
-    /// punctuation. Used by Vocabulary to learn user-specific terms.
-    let corrections: [(from: String, to: String)]
 }
 
 final class OpenAIClient {
@@ -137,54 +133,46 @@ final class OpenAIClient {
             throw OpenAIError.invalidResponse
         }
 
-        DebugLog.shared.add("OpenAI content: \(Self.preview(content))")
+        DebugLog.shared.add("OpenAI content received with \(content.count) character(s)")
 
-        let normalized = Self.normalizeModelOutput(content)
-        let polished = normalized.text
+        let polished = Self.normalizeModelOutput(content)
 
         guard !polished.isEmpty else {
             DebugLog.shared.add("OpenAI content did not contain usable text")
             throw OpenAIError.invalidResponse
         }
 
-        let fixes = normalized.fixes
-        let corrections: [(String, String)] = fixes.compactMap { dict in
-            guard let from = dict["from"], let to = dict["to"] else { return nil }
-            return (from, to)
-        }
-
         return PolishResult(
-            polished: polished.trimmingCharacters(in: .whitespacesAndNewlines),
-            corrections: corrections
+            polished: polished.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 
-    private static func normalizeModelOutput(_ raw: String) -> (text: String, fixes: [[String: String]]) {
+    private static func normalizeModelOutput(_ raw: String) -> String {
         let text = raw
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "```json", with: "")
             .replacingOccurrences(of: "```", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !text.isEmpty else { return ("", []) }
+        guard !text.isEmpty else { return "" }
 
         if let parsed = parseJSONContent(text) {
             if let string = parsed as? String {
-                return (stripWrappingQuotes(string), [])
+                return stripWrappingQuotes(string)
             }
 
             if let dict = parsed as? [String: Any] {
                 let keys = ["prompt", "text", "transcript", "input", "output", "result", "polished"]
                 for key in keys {
                     if let value = dict[key] as? String {
-                        return (stripWrappingQuotes(value), (dict["fixes"] as? [[String: String]]) ?? [])
+                        return stripWrappingQuotes(value)
                     }
                 }
-                return ("", (dict["fixes"] as? [[String: String]]) ?? [])
+                return ""
             }
         }
 
-        return (stripWrappingQuotes(text), [])
+        return stripWrappingQuotes(text)
     }
 
     private static func parseJSONContent(_ content: String) -> Any? {
