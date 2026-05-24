@@ -17,6 +17,18 @@ Powered by [WhisperKit] running on the Apple Neural Engine — your audio never 
 
 ---
 
+## Demo Video Script
+
+“Murmur is a voice keyboard for Mac. Hold `Fn`, speak, release, and your words appear right where your cursor is.”
+
+“For rough thoughts, hold `Fn + Control`. Murmur transcribes, rewrites with AI, and pastes the polished version.”
+
+“If I highlight text first, Murmur uses that selection as context. I can say, ‘reply warmly and ask if Friday works,’ and it writes the response for me.”
+
+“Raw dictation runs locally. AI mode sends text, not audio. Murmur is not a meeting recorder; it is a faster way to write inside the apps I already use.”
+
+---
+
 ## Quick install
 
 ```bash

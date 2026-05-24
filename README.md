@@ -9,6 +9,16 @@ Murmur is a macOS voice keyboard for people who think faster than they type. Hol
 
 Launch page: <https://murmur.luciana.digital>
 
+## Demo Video Script
+
+“Murmur is a voice keyboard for Mac. Hold `Fn`, speak, release, and your words appear right where your cursor is.”
+
+“For rough thoughts, hold `Fn + Control`. Murmur transcribes, rewrites with AI, and pastes the polished version.”
+
+“If I highlight text first, Murmur uses that selection as context. I can say, ‘reply warmly and ask if Friday works,’ and it writes the response for me.”
+
+“Raw dictation runs locally. AI mode sends text, not audio. Murmur is not a meeting recorder; it is a faster way to write inside the apps I already use.”
+
 ## Why Murmur
 
 Murmur is built for the small but constant friction of writing on a Mac: the half-written Slack reply, the email you keep postponing, the thought you lose while switching tabs, and the prompt that needs to sound more polished than your first draft.
