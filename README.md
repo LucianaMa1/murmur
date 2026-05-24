@@ -7,6 +7,8 @@ Murmur is a macOS voice keyboard for people who think faster than they type. Hol
 - **Release** → Murmur auto-pastes into the active app
 - **Highlight text first** → AI mode uses the selection as context
 
+Murmur supports English only for now.
+
 Launch page: <https://murmur.luciana.digital>
 
 ## Demo Video Script
