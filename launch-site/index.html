@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Murmur — hold Fn, speak, paste into any Mac app</title>
-  <meta name="description" content="Murmur is a macOS menu-bar dictation app: hold Fn to transcribe locally, hold Fn + Control to rewrite with AI, then paste into any Mac app." />
-  <meta property="og:title" content="Murmur — Fn push-to-talk dictation for macOS" />
-  <meta property="og:description" content="Hold Fn for local transcription or Fn + Control for AI rewrite. Murmur can paste into the app you are already using." />
+  <title>Murmur — a macOS voice keyboard for faster writing</title>
+  <meta name="description" content="Murmur is a macOS voice keyboard: hold Fn, speak, release, and your words appear in the app you were already using. Fn + Control adds AI polish and can use highlighted text as context." />
+  <meta property="og:title" content="Murmur — macOS voice keyboard for people who think faster than they type" />
+  <meta property="og:description" content="Hold Fn for local transcription, Fn + Control for AI rewrite, or highlight text first so Murmur uses your selection as context." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://murmur.luciana.digital" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -99,7 +99,7 @@
     .feature-card { align-items: flex-start; }
     .feature-card div:last-child { display: grid; gap: 8px; }
     .feature-card strong { display: block; font-size: clamp(24px, 2.4vw, 36px); line-height: .95; }
-    .feature-card p { margin: 0; font-family: var(--hand); font-size: clamp(20px, 1.8vw, 27px); font-weight: 700; line-height: 1.04; }
+    .feature-card p { margin: 0; font-family: var(--hand); font-size: clamp(20px, 1.8vw, 27px); font-weight: 700; line-height: 1.12; }
     .section-kicker { width: max-content; margin: 0 auto 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--ink); color: var(--paper); padding: 7px 14px 10px; font-family: var(--display); font-size: clamp(17px, 1.4vw, 22px); }
     .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
     .info-card { border: 4px solid var(--ink); border-radius: 28px; background: var(--paper); box-shadow: 6px 6px 0 var(--ink); padding: 22px; transform: rotate(.25deg); }
@@ -111,7 +111,7 @@
     .watch-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 20px; align-items: stretch; }
     .watch-card { border: 4px solid var(--ink); border-radius: 30px; padding: clamp(22px, 3vw, 34px); background: var(--paper); box-shadow: 7px 7px 0 var(--ink); }
     .watch-card h3 { margin: 0 0 16px; font-family: var(--display); font-size: clamp(34px, 4.6vw, 66px); line-height: .9; }
-    .watch-card p, .watch-card li { font-size: clamp(21px, 2vw, 30px); font-weight: 700; line-height: 1.07; }
+    .watch-card p, .watch-card li { font-size: clamp(21px, 2vw, 30px); font-weight: 700; line-height: 1.14; }
     .watch-card ul { margin: 0; padding-left: 1.1em; }
     .permission-gallery { margin-top: 28px; display: grid; grid-template-columns: .9fr 1.1fr 1.35fr; gap: 20px; align-items: start; }
     .permission-shot { margin: 0; border: 4px solid var(--ink); border-radius: 28px; background: var(--paper); box-shadow: 6px 6px 0 var(--ink); padding: 12px; transform: rotate(-.35deg); }
@@ -142,7 +142,7 @@
     .install-copy h2 { font-family: var(--display); font-size: clamp(38px, 5.4vw, 80px); line-height: .88; margin: 0; }
     .install-copy p { font-size: clamp(21px, 2.3vw, 32px); font-weight: 700; margin: 0; }
     .command { display: flex; align-items: stretch; border: 4px solid var(--ink); border-radius: 18px; overflow: hidden; background: var(--ink); color: var(--paper); }
-    pre { margin: 0; padding: 16px 18px 19px; white-space: pre; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; flex: 1; }
+    pre { margin: 0; padding: 16px 18px 19px; white-space: pre-wrap; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(13px, 1.35vw, 18px); line-height: 1.45; flex: 1; }
     .copy { border: 0; border-left: 4px solid var(--paper); background: var(--paper); color: var(--ink); padding: 0 18px; font-family: var(--display); font-size: 24px; cursor: pointer; }
 
     footer { padding: 32px 0 64px; text-align: center; font-family: var(--display); font-size: clamp(20px, 2.2vw, 32px); }
@@ -193,67 +193,68 @@
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-panel">
         <div class="hero-copy">
-          <span class="chapter">01 · menu bar dictation</span>
-          <p class="eyebrow">native macOS dictation</p>
-          <h1 id="hero-title">Hold Fn. Speak. Paste clean text.</h1>
-          <p class="sub">Murmur writes into the app you are already using. Hold <span class="keycap-inline">Fn</span> to transcribe locally, or <span class="keycap-inline">Fn</span> + <span class="keycap-inline">Control</span> to rewrite with your saved prompt.</p>
+          <span class="chapter">01 · macOS voice keyboard</span>
+          <p class="eyebrow">think faster than you type</p>
+          <h1 id="hero-title">Hold Fn. Speak. Release.</h1>
+          <p class="sub">Murmur puts your words exactly where your cursor already is. Hold <span class="keycap-inline">Fn</span> for raw local transcription, or <span class="keycap-inline">Fn</span> + <span class="keycap-inline">Control</span> for AI polish. Highlight text first and AI mode uses that selection as context.</p>
           <div class="cta">
             <a class="button" href="#install">Install prototype →</a>
+            <a class="button" href="demo/">Try the demo</a>
             <a class="button" href="https://github.com/LucianaMa1/murmur">View source</a>
           </div>
-          <p class="note">Note: raw transcription runs locally with WhisperKit. Rewrite sends text — not audio — to OpenAI and needs your API key.</p>
+          <p class="note">Raw dictation runs locally. AI mode sends text, not audio. Murmur is not a meeting recorder; it is a faster way to write inside the apps you already use.</p>
           <div class="pills" aria-label="Product traits">
-            <span class="pill">menu-bar app</span>
-            <span class="pill">global hotkeys</span>
-            <span class="pill">editable vocabulary</span>
+            <span class="pill">voice keyboard</span>
+            <span class="pill">local raw dictation</span>
+            <span class="pill">selection-aware AI polish</span>
           </div>
         </div>
         <aside class="hero-side" aria-label="Murmur quick flow">
           <div class="mini-flow">
-            <h2>two ways to talk</h2>
-            <div class="mini-step"><span class="mini-num">1</span><span>choose a hotkey</span></div>
-            <div class="mini-step"><span class="mini-num">2</span><span>speak, then release</span></div>
-            <div class="mini-step"><span class="mini-num">3</span><span>paste or copy the result</span></div>
-            <div class="mini-output">raw transcript or polished rewrite appears here▌</div>
+            <h2>three writing moves</h2>
+            <div class="mini-step"><span class="mini-num">1</span><span>hold Fn for raw transcription</span></div>
+            <div class="mini-step"><span class="mini-num">2</span><span>hold Fn + Control for AI polish</span></div>
+            <div class="mini-step"><span class="mini-num">3</span><span>highlight first to give AI context</span></div>
+            <div class="mini-output">release → Murmur pastes into the active app▌</div>
           </div>
         </aside>
       </div>
     </section>
 
     <section id="why" aria-labelledby="why-title">
-      <div class="section-kicker">current features</div>
-      <h2 id="why-title" class="section-title">A tiny app with the controls you actually need.</h2>
+      <div class="section-kicker">why murmur</div>
+      <h2 id="why-title" class="section-title">For the half-written replies and rough thoughts you keep losing.</h2>
       <div class="features">
-        <article class="feature-card"><span class="feature-icon">Fn</span><div><strong>Push-to-talk dictation</strong><p>Hold Fn, speak, release. Murmur records and transcribes with WhisperKit locally on your Mac.</p></div></article>
-        <article class="feature-card"><span class="feature-icon">⌃</span><div><strong>AI rewrite/polish</strong><p>Hold Fn + Control to transcribe, then rewrite with your saved prompt. Only text goes to OpenAI, not audio.</p></div></article>
-        <article class="feature-card"><span class="feature-icon">☝</span><div><strong>Floating controls</strong><p>Use on-screen Transcribe and Rewrite buttons when macOS catches the Fn key.</p></div></article>
-        <article class="feature-card"><span class="feature-icon">⌘</span><div><strong>Auto-paste + clipboard restoration</strong><p>Paste directly into the active text field, then restore whatever was already on your clipboard.</p></div></article>
-        <article class="feature-card"><span class="feature-icon">Aa</span><div><strong>Vocabulary support</strong><p>Add names, jargon, commands, and correction pairs in plain-text vocabulary files.</p></div></article>
-        <article class="feature-card"><span class="feature-icon">bug</span><div><strong>Debug panel</strong><p>See recording, transcription, permission, paste, and API logs when something fails.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">Fn</span><div><strong>Capture thoughts before they disappear</strong><p>Hold Fn, say the sentence, release, and Murmur drops clean text into the current field. No recorder window, no copy/paste ritual.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">⌃</span><div><strong>Turn rough speech into usable writing</strong><p>Hold Fn + Control to transcribe, rewrite with AI, and paste a clearer email, reply, task, or prompt.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">☑</span><div><strong>Respond with selected context</strong><p>Highlight text first, hold Fn + Control, and say what you want. Murmur uses the selection as context for the response.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">⌘</span><div><strong>Keep your workflow intact</strong><p>Murmur runs from the menu bar, auto-pastes into the active app, and restores your clipboard after paste.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">◎</span><div><strong>Local raw dictation</strong><p>Raw Fn transcription runs locally with WhisperKit. AI mode sends text, not audio, and only when you ask for polish.</p></div></article>
+        <article class="feature-card"><span class="feature-icon">Aa</span><div><strong>Plain-text vocabulary</strong><p>Keep names, commands, and domain jargon under your control with editable vocabulary and correction files.</p></div></article>
       </div>
     </section>
 
     <section id="settings" aria-labelledby="settings-title">
-      <div class="section-kicker">settings</div>
-      <h2 id="settings-title" class="section-title">Tune the app without turning it into a dashboard.</h2>
+      <div class="section-kicker">who it helps</div>
+      <h2 id="settings-title" class="section-title">A lightweight voice keyboard for people answering messages all day.</h2>
       <div class="info-grid">
-        <article class="info-card"><h3>Rewrite brain</h3><ul><li>OpenAI API key only for Fn + Control rewrite</li><li>Choose the OpenAI model</li><li>Edit the LLM prompt that controls polish style</li></ul></article>
-        <article class="info-card"><h3>Paste behavior</h3><ul><li>Turn auto-paste on or off</li><li>Show or hide floating controls</li><li>Pick glass, dark, or light floating style</li><li>Choose mint, blue, pink, amber, violet, or graphite accents</li></ul></article>
-        <article class="info-card"><h3>Personal language</h3><ul><li>Open vocabulary and learned correction files</li><li>Add names, jargon, and commands</li><li>Optionally learn useful correction patterns</li></ul></article>
+        <article class="info-card"><h3>Slack replies</h3><ul><li>Say the thought before it disappears</li><li>Polish rough speech into a clear response</li><li>Use selected text as context for warmer replies</li></ul></article>
+        <article class="info-card"><h3>Email + tasks</h3><ul><li>Turn postponed notes into finished drafts</li><li>Ask Murmur to make text clearer, calmer, or shorter</li><li>Paste directly where you were already writing</li></ul></article>
+        <article class="info-card"><h3>AI prompts</h3><ul><li>Dictate longer prompts without typing friction</li><li>Use highlighted app text as context</li><li>Keep domain terms in plain-text vocabulary files</li></ul></article>
       </div>
     </section>
 
     <section id="how" aria-labelledby="how-title">
       <div class="section-kicker">flow</div>
-      <h2 id="how-title" class="section-title">How Murmur works</h2>
+      <h2 id="how-title" class="section-title">How the voice keyboard works</h2>
       <div class="steps">
         <article class="step">
           <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M28 19l54 34-26 8 13 30-16 7-13-30-20 18z"/><path d="M77 30l16-13M88 52h20M70 16l6-16"/></svg></div>
-          <span>1. Click any text field</span>
+          <span>1. Click a text field or highlight context</span>
         </article>
         <article class="step">
           <div class="step-art"><div class="keys-mini"><span class="mini-key">Fn</span><span class="mini-key">⌃</span></div></div>
-          <span>2. Hold Fn or Fn+Control</span>
+          <span>2. Hold Fn or Fn + Control</span>
         </article>
         <article class="step">
           <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M20 28h80v52H56L36 100V80H20z"/><path d="M38 51h44M38 64h29"/></svg></div>
@@ -261,7 +262,7 @@
         </article>
         <article class="step">
           <div class="step-art"><svg viewBox="0 0 120 120" aria-hidden="true"><path d="M22 28h58v46H22z"/><path d="M34 44h34M34 58h25"/><path d="M76 68l25 14-15 5 7 16-10 4-7-16-11 12z"/></svg></div>
-          <span>4. Release and insert</span>
+          <span>4. Release to paste</span>
         </article>
       </div>
     </section>
@@ -270,8 +271,8 @@
       <div class="section-kicker">troubleshooting</div>
       <h2 id="watch-title" class="section-title">When macOS gets picky, check these first.</h2>
       <div class="watch-grid">
-        <article class="watch-card"><h3>Permissions matter</h3><ul><li>Microphone is required for recording.</li><li>Accessibility is required for auto-paste.</li><li>Input Monitoring is required for hotkeys.</li><li>If permissions act weird, remove and re-add Murmur in Accessibility and Input Monitoring.</li><li>After permission changes, quit and reopen Murmur.</li></ul></article>
-        <article class="watch-card"><h3>If hotkeys or paste fail</h3><ul><li>If macOS intercepts Fn, use the floating Transcribe/Rewrite buttons.</li><li>Raw Fn transcription works locally.</li><li>Fn + Control rewrite needs internet and an OpenAI key.</li><li>English only for now.</li><li>Use the Debug Panel to check recording, transcription, paste, permissions, and API failures.</li></ul></article>
+        <article class="watch-card"><h3>Permissions matter</h3><ul><li>Microphone is required for recording.</li><li>Input Monitoring is required for hotkeys.</li><li>Accessibility is required for auto-paste and selected-text context.</li><li>If permissions act weird, remove and re-add Murmur in Accessibility and Input Monitoring.</li><li>After permission changes, quit and reopen Murmur.</li></ul></article>
+        <article class="watch-card"><h3>If hotkeys, paste, or context fail</h3><ul><li>If macOS intercepts Fn, use the floating Transcribe/Rewrite buttons.</li><li>Fn + Control rewrite needs internet and an OpenAI key.</li><li>Selection context depends on whether the frontmost app exposes highlighted text to macOS Accessibility.</li><li>If an app hides the selection, Murmur continues without context and logs the reason in the Debug Panel.</li><li>Use the Debug Panel to check recording, transcription, paste, permissions, context, and API failures.</li></ul></article>
       </div>
       <div class="permission-gallery" aria-label="macOS permission examples">
         <figure class="permission-shot">
@@ -295,8 +296,8 @@
         <div class="install-body">
           <div class="terminal-art" aria-hidden="true"><div class="terminal-line"></div><div class="terminal-line"></div><div class="terminal-line"></div></div>
           <div class="install-copy">
-            <h2 id="install-title">Install the prototype</h2>
-            <p>Run the installer, grant Microphone, Accessibility, and Input Monitoring permissions, then look for 〰️ in your menu bar.</p>
+            <h2 id="install-title">Install Murmur</h2>
+            <p>Requires macOS 14+. Apple Silicon is recommended. Run the installer, grant Microphone, Accessibility, and Input Monitoring permissions, then add an OpenAI key if you want Fn + Control polish mode.</p>
             <div class="command">
               <pre>$ curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash</pre>
               <button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/LucianaMa1/murmur/main/install.sh | bash">Copy</button>
