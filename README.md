@@ -33,6 +33,12 @@ Use it for:
 
 Raw dictation runs locally with WhisperKit. AI mode sends text, not audio, to OpenAI.
 
+AI rewrite mode also supports:
+
+- Style Profiles for Email, Work, Casual, and Other apps
+- Tone and length preferences per profile
+- A Dictionary UI for names, tools, commands, and mishearing fixes
+
 ## Install
 
 Requires macOS 14+. Apple Silicon recommended.

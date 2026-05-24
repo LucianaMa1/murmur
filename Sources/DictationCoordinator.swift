@@ -23,6 +23,7 @@ final class DictationCoordinator {
     private var currentSessionID: UUID?
     private var targetApp: NSRunningApplication?
     private var selectedContext: String?
+    private var activeStyleProfile: StyleProfile?
 
     var onStateChange: ((DictationCoordinatorState) -> Void)?
 
@@ -68,6 +69,7 @@ final class DictationCoordinator {
         currentSessionID = sessionID
         targetApp = currentTargetApp()
         selectedContext = nil
+        activeStyleProfile = nil
         DebugLog.shared.add("Recording started, mode=\(mode == .raw ? "raw" : "llm")")
         if let targetApp {
             DebugLog.shared.add("Target app captured: \(targetApp.localizedName ?? targetApp.bundleIdentifier ?? "<unknown>")")
@@ -78,6 +80,11 @@ final class DictationCoordinator {
         startRecording(mode)
 
         if mode == .llm {
+            let category = StyleProfileStore.category(for: targetApp)
+            activeStyleProfile = StyleProfileStore.profile(for: category)
+            if let activeStyleProfile {
+                DebugLog.shared.add("AI mode style profile: \(activeStyleProfile.category.label)")
+            }
             SelectionReader.selectedText(in: targetApp) { [weak self] context in
                 Task { @MainActor in
                     guard let self, self.currentSessionID == sessionID else { return }
@@ -147,7 +154,8 @@ final class DictationCoordinator {
             case .llm:
                 let result = try await OpenAIClient.shared.polish(
                     transcript: transcript,
-                    selectedContext: selectedContext
+                    selectedContext: selectedContext,
+                    styleProfile: activeStyleProfile
                 )
                 finalText = result.polished
 
@@ -174,6 +182,7 @@ final class DictationCoordinator {
         }
         isProcessing = false
         selectedContext = nil
+        activeStyleProfile = nil
     }
 
     private func currentTargetApp() -> NSRunningApplication? {

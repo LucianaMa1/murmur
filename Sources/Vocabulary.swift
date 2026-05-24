@@ -12,9 +12,13 @@
 import AppKit
 import Foundation
 
-struct VocabularyEntry {
+struct VocabularyEntry: Identifiable, Hashable {
     let term: String              // canonical form
     let mishearing: String?       // optional: what Whisper might mishear it as
+
+    var id: String {
+        "\(mishearing ?? "")=>\(term)"
+    }
 
     /// Parses a single line. Returns nil for blanks/comments.
     /// Supported forms:
@@ -68,6 +72,30 @@ final class Vocabulary {
         return result
     }
 
+    func userEntries() -> [VocabularyEntry] {
+        load(userFile)
+    }
+
+    func add(term: String, mishearing: String?) {
+        let normalizedTerm = term.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedMishearing = mishearing?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedTerm.isEmpty else { return }
+
+        let entry = VocabularyEntry(
+            term: normalizedTerm,
+            mishearing: normalizedMishearing?.isEmpty == false ? normalizedMishearing : nil
+        )
+        var entries = userEntries()
+        entries.removeAll { $0.id.lowercased() == entry.id.lowercased() }
+        entries.append(entry)
+        save(entries)
+    }
+
+    func delete(_ entry: VocabularyEntry) {
+        save(userEntries().filter { $0.id != entry.id })
+    }
+
     /// Open the user's vocabulary file in their default editor.
     func openUserFileInEditor() {
         NSWorkspace.shared.open(userFile)
@@ -100,5 +128,24 @@ final class Vocabulary {
     private func load(_ url: URL) -> [VocabularyEntry] {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         return text.split(separator: "\n").compactMap { VocabularyEntry.parse(String($0)) }
+    }
+
+    private func save(_ entries: [VocabularyEntry]) {
+        let header = """
+        # Murmur vocabulary
+        # One term per line. Lines starting with # are ignored.
+        # Use "misheard phrase => correct spelling" for correction pairs.
+
+        """
+        let body = entries.map { entry in
+            if let mishearing = entry.mishearing, !mishearing.isEmpty {
+                return "\(mishearing) => \(entry.term)"
+            }
+            return entry.term
+        }
+        .joined(separator: "\n")
+
+        let text = header + body + (body.isEmpty ? "" : "\n")
+        try? text.write(to: userFile, atomically: true, encoding: .utf8)
     }
 }

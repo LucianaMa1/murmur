@@ -10,11 +10,20 @@ final class AudioRecorder {
     private let engine = AVAudioEngine()
     private var outputFile: AVAudioFile?
     private var outputURL: URL?
+    private var hasInstalledTap = false
+    private var isRecording = false
+    private var pendingStartID: UUID?
 
     /// Whisper expects 16kHz mono. We'll write to a temporary WAV file.
     private let targetSampleRate: Double = 16_000
 
     func start() {
+        let startID = UUID()
+        pendingStartID = startID
+        start(startID: startID)
+    }
+
+    private func start(startID: UUID) {
         let permission = AVCaptureDevice.authorizationStatus(for: .audio)
         DebugLog.shared.add("Microphone permission status: \(permission.debugName)")
         switch permission {
@@ -24,7 +33,11 @@ final class AudioRecorder {
                 DebugLog.shared.add("Microphone permission response: \(granted ? "granted" : "denied")")
                 guard granted else { return }
                 DispatchQueue.main.async {
-                    self?.start()
+                    guard self?.pendingStartID == startID else {
+                        DebugLog.shared.add("Ignoring stale microphone permission callback")
+                        return
+                    }
+                    self?.start(startID: startID)
                 }
             }
             return
@@ -41,12 +54,16 @@ final class AudioRecorder {
         }
 
         // Reset any previous session.
-        if engine.isRunning { engine.stop() }
-        engine.reset()
+        cleanupCurrentSession(removeFile: true)
+        pendingStartID = startID
 
         let input = engine.inputNode
         let inputFormat = input.outputFormat(forBus: 0)
         DebugLog.shared.add("Input format: \(inputFormat.sampleRate) Hz, \(inputFormat.channelCount) channel(s)")
+        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+            DebugLog.shared.add("Invalid microphone input format; recorder will not start")
+            return
+        }
 
         // Target format: 16kHz, 16-bit, mono PCM.
         guard let outputFormat = AVAudioFormat(
@@ -131,21 +148,38 @@ final class AudioRecorder {
                 print("Write error: \(error)")
             }
         }
+        hasInstalledTap = true
         DebugLog.shared.add("Microphone tap installed")
 
         do {
             try engine.start()
+            isRecording = true
             DebugLog.shared.add("Audio engine started")
         } catch {
             DebugLog.shared.add("Failed to start audio engine: \(error.localizedDescription)")
+            cleanupCurrentSession(removeFile: true)
             print("❌ Failed to start engine: \(error)")
         }
     }
 
     func stop(_ completion: @escaping (URL?) -> Void) {
         DebugLog.shared.add("Audio recorder stop requested")
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
+        pendingStartID = nil
+
+        guard isRecording || hasInstalledTap || outputURL != nil else {
+            DebugLog.shared.add("Audio recorder stop ignored; no active recording session")
+            DispatchQueue.main.async { completion(nil) }
+            return
+        }
+
+        if hasInstalledTap {
+            engine.inputNode.removeTap(onBus: 0)
+            hasInstalledTap = false
+        }
+        if engine.isRunning {
+            engine.stop()
+        }
+        isRecording = false
 
         // Close the file by releasing it (AVAudioFile flushes on dealloc).
         outputFile = nil
@@ -167,6 +201,24 @@ final class AudioRecorder {
                 completion(nil)
             }
         }
+    }
+
+    private func cleanupCurrentSession(removeFile: Bool) {
+        if hasInstalledTap {
+            engine.inputNode.removeTap(onBus: 0)
+            hasInstalledTap = false
+        }
+        if engine.isRunning {
+            engine.stop()
+        }
+        engine.reset()
+        outputFile = nil
+        isRecording = false
+
+        if removeFile, let outputURL {
+            try? FileManager.default.removeItem(at: outputURL)
+        }
+        outputURL = nil
     }
 }
 

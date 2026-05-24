@@ -81,15 +81,23 @@ final class OpenAIClient {
 
     // MARK: - Polish
 
-    func polish(transcript: String, selectedContext: String? = nil) async throws -> PolishResult {
+    func polish(transcript: String,
+                selectedContext: String? = nil,
+                styleProfile: StyleProfile? = nil) async throws -> PolishResult {
         guard let apiKey = apiKey, !apiKey.isEmpty else {
             throw OpenAIError.missingAPIKey
         }
 
-        let systemPrompt = buildSystemPrompt(hasSelectedContext: selectedContext?.isEmpty == false)
+        let systemPrompt = buildSystemPrompt(
+            hasSelectedContext: selectedContext?.isEmpty == false,
+            styleProfile: styleProfile
+        )
         DebugLog.shared.add("OpenAI polish request started, model=\(model)")
         if let selectedContext, !selectedContext.isEmpty {
             DebugLog.shared.add("OpenAI request includes selected context with \(selectedContext.count) character(s)")
+        }
+        if let styleProfile {
+            DebugLog.shared.add("OpenAI request uses style profile: \(styleProfile.category.label), \(styleProfile.tone.label), \(styleProfile.length.label)")
         }
 
         var request = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
@@ -228,7 +236,8 @@ final class OpenAIClient {
         """
     }
 
-    private func buildSystemPrompt(hasSelectedContext: Bool = false) -> String {
+    private func buildSystemPrompt(hasSelectedContext: Bool = false,
+                                   styleProfile: StyleProfile? = nil) -> String {
         let entries = Vocabulary.shared.allEntries()
         let plainTextGuard = """
         Your output must be plain natural text only.
@@ -247,7 +256,13 @@ final class OpenAIClient {
 
         """ : ""
 
-        let basePrompt = plainTextGuard + systemPromptBase + contextPrompt
+        let stylePrompt = styleProfile.map { """
+
+        \($0.promptInstructions)
+
+        """ } ?? ""
+
+        let basePrompt = plainTextGuard + systemPromptBase + contextPrompt + stylePrompt
         guard !entries.isEmpty else { return basePrompt }
 
         var vocab = "\n\nUser vocabulary (authoritative spellings — preserve casing exactly):\n"

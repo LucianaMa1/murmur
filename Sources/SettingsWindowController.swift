@@ -24,7 +24,7 @@ final class SettingsWindowController {
         let win = NSWindow(contentViewController: host)
         win.title = "Murmur Settings"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 520, height: 600))
+        win.setContentSize(NSSize(width: 560, height: 780))
         win.isReleasedWhenClosed = false
         win.center()
         win.makeKeyAndOrderFront(nil)
@@ -42,6 +42,14 @@ struct SettingsView: View {
     @AppStorage(FloatingControlsPreferences.styleKey) private var floatingControlsStyle: String = "glass"
     @State private var apiKey: String = Keychain.read() ?? ""
     @State private var saved: Bool = false
+    @State private var selectedStyleCategory: StyleProfileCategory = .email
+    @State private var selectedTone: StyleTone = .formal
+    @State private var selectedLength: StyleLength = .natural
+    @State private var styleHabit: String = ""
+    @State private var dictionaryEntries: [VocabularyEntry] = []
+    @State private var dictionarySearch: String = ""
+    @State private var dictionaryTerm: String = ""
+    @State private var dictionaryMishearing: String = ""
 
     var body: some View {
         ScrollView {
@@ -70,6 +78,52 @@ struct SettingsView: View {
                 GroupBox("Behavior") {
                     Toggle("Auto-paste after transcription", isOn: $autoPaste)
                         .padding(.vertical, 4)
+                }
+
+                GroupBox("Style Profiles") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Picker("Applies to", selection: $selectedStyleCategory) {
+                            ForEach(StyleProfileCategory.allCases) { category in
+                                Text(category.label).tag(category)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Tone")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Picker("Tone", selection: $selectedTone) {
+                                    ForEach(StyleTone.allCases) { tone in
+                                        Text(tone.label).tag(tone)
+                                    }
+                                }
+                                .labelsHidden()
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Length")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Picker("Length", selection: $selectedLength) {
+                                    ForEach(StyleLength.allCases) { length in
+                                        Text(length.label).tag(length)
+                                    }
+                                }
+                                .labelsHidden()
+                            }
+                        }
+
+                        TextField("Small habit, e.g. no exclamation marks or always sign off with Luciana", text: $styleHabit)
+                            .textFieldStyle(.roundedBorder)
+
+                        Text("AI rewrite mode automatically picks a profile from the current app: Mail/Outlook, Slack/Cursor, Messages, or Other.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 4)
                 }
 
                 GroupBox("Floating Controls") {
@@ -130,16 +184,64 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
 
-                GroupBox("Vocabulary") {
+                GroupBox("Dictionary") {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Murmur uses ~/.murmur/vocabulary.txt to fix misheard jargon, names, and commands in AI rewrite mode. Raw local transcription is unchanged.")
+                        Text("Add names, tools, commands, and mishearing fixes for AI rewrite mode.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
+                        HStack(spacing: 8) {
+                            TextField("Correct spelling, e.g. kubectl", text: $dictionaryTerm)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("Misheard as, optional", text: $dictionaryMishearing)
+                                .textFieldStyle(.roundedBorder)
+                            Button("Add") {
+                                addDictionaryEntry()
+                            }
+                            .disabled(dictionaryTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+
+                        TextField("Search dictionary", text: $dictionarySearch)
+                            .textFieldStyle(.roundedBorder)
+
+                        if filteredDictionaryEntries.isEmpty {
+                            Text("No matching terms yet.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            VStack(spacing: 6) {
+                                ForEach(Array(filteredDictionaryEntries.prefix(8))) { entry in
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(entry.term)
+                                                .font(.body.weight(.medium))
+                                            if let mishearing = entry.mishearing {
+                                                Text("Misheard as: \(mishearing)")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        Spacer()
+                                        Button("Remove") {
+                                            Vocabulary.shared.delete(entry)
+                                            loadDictionary()
+                                        }
+                                        .font(.caption)
+                                    }
+                                    .padding(8)
+                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .cornerRadius(8)
+                                }
+                            }
+                        }
+
                         HStack {
-                            Button("Edit Vocabulary…") {
+                            Button("Open File") {
                                 Vocabulary.shared.openUserFileInEditor()
+                            }
+                            Button("Refresh") {
+                                loadDictionary()
                             }
                             Spacer()
                         }
@@ -175,7 +277,23 @@ struct SettingsView: View {
             }
             .padding(20)
         }
-        .frame(width: 520, height: 600)
+        .frame(width: 560, height: 780)
+        .onAppear {
+            loadStyleProfile()
+            loadDictionary()
+        }
+        .onChange(of: selectedStyleCategory) { _, _ in
+            loadStyleProfile()
+        }
+        .onChange(of: selectedTone) { _, _ in
+            saveStyleProfile()
+        }
+        .onChange(of: selectedLength) { _, _ in
+            saveStyleProfile()
+        }
+        .onChange(of: styleHabit) { _, _ in
+            saveStyleProfile()
+        }
         .onChange(of: floatingControlsEnabled) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
         }
@@ -185,6 +303,42 @@ struct SettingsView: View {
         .onChange(of: floatingControlsStyle) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
         }
+    }
+
+    private var filteredDictionaryEntries: [VocabularyEntry] {
+        let query = dictionarySearch.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return dictionaryEntries }
+        return dictionaryEntries.filter { entry in
+            entry.term.lowercased().contains(query)
+            || entry.mishearing?.lowercased().contains(query) == true
+        }
+    }
+
+    private func loadStyleProfile() {
+        let profile = StyleProfileStore.profile(for: selectedStyleCategory)
+        selectedTone = profile.tone
+        selectedLength = profile.length
+        styleHabit = profile.habit
+    }
+
+    private func saveStyleProfile() {
+        StyleProfileStore.save(profile: StyleProfile(
+            category: selectedStyleCategory,
+            tone: selectedTone,
+            length: selectedLength,
+            habit: styleHabit
+        ))
+    }
+
+    private func loadDictionary() {
+        dictionaryEntries = Vocabulary.shared.userEntries()
+    }
+
+    private func addDictionaryEntry() {
+        Vocabulary.shared.add(term: dictionaryTerm, mishearing: dictionaryMishearing)
+        dictionaryTerm = ""
+        dictionaryMishearing = ""
+        loadDictionary()
     }
 }
 
