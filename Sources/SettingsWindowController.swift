@@ -105,7 +105,7 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("When you change this, Murmur prepares the selected model in the background so your next dictation does not wait for the download.")
+                        Text("When you change this, Murmur prepares the selected model in the background and shows download progress in the floating controls, menu bar, and Debug.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

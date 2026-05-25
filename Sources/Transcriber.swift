@@ -20,6 +20,82 @@ private enum TranscriberError: LocalizedError {
     }
 }
 
+private final class ModelDownloadProgressReporter {
+    private let label: String
+    private let formatter = ByteCountFormatter()
+    private let lock = NSLock()
+    private var lastBucket = -1
+
+    init(label: String) {
+        self.label = label
+        formatter.countStyle = .file
+    }
+
+    func start(modelName: String) {
+        lock.lock()
+        lastBucket = 0
+        lock.unlock()
+        DebugLog.shared.add("Downloading \(label) model: 0% (\(modelName))")
+        publish(percent: 0)
+    }
+
+    func update(_ progress: Progress) {
+        let fraction = progress.fractionCompleted.isFinite ? progress.fractionCompleted : 0
+        let percent = Int((max(0, min(1, fraction)) * 100).rounded(.down))
+        let bucket = percent == 100 ? 100 : (percent / 5) * 5
+
+        lock.lock()
+        guard bucket != lastBucket else {
+            lock.unlock()
+            return
+        }
+        lastBucket = bucket
+        lock.unlock()
+
+        let amount = formattedAmount(progress)
+        DebugLog.shared.add("Downloading \(label) model: \(bucket)%\(amount)")
+        publish(percent: bucket)
+    }
+
+    func finish(folder: URL) {
+        DebugLog.shared.add("Downloading \(label) model: 100% complete at \(folder.path)")
+        publish(percent: 100)
+        DispatchQueue.main.async {
+            StatusBarController.shared.finishModelDownload()
+            NotificationCenter.default.post(name: .murmurModelDownloadFinished, object: nil)
+        }
+    }
+
+    func fail(_ error: Error) {
+        DebugLog.shared.add("Downloading \(label) model failed: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            StatusBarController.shared.finishModelDownload()
+            NotificationCenter.default.post(name: .murmurModelDownloadFinished, object: nil)
+        }
+    }
+
+    private func formattedAmount(_ progress: Progress) -> String {
+        guard progress.totalUnitCount > 0, progress.completedUnitCount >= 0 else { return "" }
+        let completed = formatter.string(fromByteCount: progress.completedUnitCount)
+        let total = formatter.string(fromByteCount: progress.totalUnitCount)
+        return " (\(completed) / \(total))"
+    }
+
+    private func publish(percent: Int) {
+        DispatchQueue.main.async {
+            StatusBarController.shared.setModelDownloadProgress(label: self.label, percent: percent)
+            NotificationCenter.default.post(
+                name: .murmurModelDownloadProgress,
+                object: nil,
+                userInfo: [
+                    ModelDownloadProgressInfo.label: self.label,
+                    ModelDownloadProgressInfo.percent: percent
+                ]
+            )
+        }
+    }
+}
+
 enum WhisperModelOption: String, CaseIterable, Identifiable {
     case fast = "openai_whisper-base.en"
     case noiseResistant = "openai_whisper-small.en"
@@ -69,7 +145,7 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
 actor Transcriber {
 
     private static let localLoadTimeoutSeconds: UInt64 = 20
-    private static let downloadTimeoutSeconds: UInt64 = 45
+    private static let downloadTimeoutSeconds: UInt64 = 900
 
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
@@ -178,25 +254,56 @@ actor Transcriber {
         allowDownload: Bool
     ) async throws -> WhisperKit {
         let modelName = option.modelName
+        let modelFolder: URL
         if let localModelFolder {
             DebugLog.shared.add("Loading local Whisper model \(option.label): \(localModelFolder.path)")
+            modelFolder = localModelFolder
         } else {
             let fallbackNote = option == requested ? "" : " as fallback for \(requested.label)"
             DebugLog.shared.add("Local Whisper model not found; attempting download for \(option.label)\(fallbackNote): \(modelName)")
+            guard allowDownload else {
+                throw TranscriberError.noModelAvailable
+            }
+            modelFolder = try await downloadModel(option: option, requested: requested)
         }
-        let timeout = localModelFolder == nil ? Self.downloadTimeoutSeconds : Self.localLoadTimeoutSeconds
         let config = WhisperKitConfig(
-            model: localModelFolder == nil ? modelName : nil,
+            model: nil,
             downloadBase: modelDownloadBase(),
-            modelFolder: localModelFolder?.path,
+            modelFolder: modelFolder.path,
             verbose: false,
             logLevel: .error,
             prewarm: true,
             load: true,
-            download: localModelFolder == nil && allowDownload
+            download: false
         )
-        return try await withModelLoadTimeout(seconds: timeout, label: option.label) {
+        return try await withModelLoadTimeout(seconds: Self.localLoadTimeoutSeconds, label: option.label) {
             try await WhisperKit(config)
+        }
+    }
+
+    private func downloadModel(option: WhisperModelOption, requested: WhisperModelOption) async throws -> URL {
+        let reporter = ModelDownloadProgressReporter(label: option.label)
+        let downloadBase = modelDownloadBase()
+        reporter.start(modelName: option.modelName)
+        do {
+            let folder = try await withModelLoadTimeout(seconds: Self.downloadTimeoutSeconds, label: option.label) {
+                try await WhisperKit.download(
+                    variant: option.modelName,
+                    downloadBase: downloadBase,
+                    from: "argmaxinc/whisperkit-coreml",
+                    progressCallback: { progress in
+                        reporter.update(progress)
+                    }
+                )
+            }
+            reporter.finish(folder: folder)
+            if option != requested {
+                DebugLog.shared.add("Downloaded fallback \(option.label) for requested \(requested.label)")
+            }
+            return folder
+        } catch {
+            reporter.fail(error)
+            throw error
         }
     }
 

@@ -25,6 +25,7 @@ final class StatusBarController {
         case idle
         case recording(DictationMode)
         case processing
+        case downloadingModel(label: String, percent: Int)
         case error(String)
     }
 
@@ -81,6 +82,21 @@ final class StatusBarController {
         state = on ? .processing : .idle
     }
 
+    func setModelDownloadProgress(label: String, percent: Int) {
+        switch state {
+        case .idle, .downloadingModel:
+            state = .downloadingModel(label: label, percent: percent)
+        case .recording, .processing, .error:
+            break
+        }
+    }
+
+    func finishModelDownload() {
+        if case .downloadingModel = state {
+            state = .idle
+        }
+    }
+
     func setIdle() { state = .idle }
 
     func setError(_ message: String) {
@@ -114,6 +130,10 @@ final class StatusBarController {
             button.image = symbol("ellipsis.circle", color: .systemBlue)
             button.toolTip = "Processing…"
             startSpinning()
+
+        case .downloadingModel(let label, let percent):
+            button.image = symbol("arrow.down.circle.fill", color: .systemBlue)
+            button.toolTip = "Downloading \(label) model: \(percent)%"
 
         case .error(let message):
             button.image = symbol("exclamationmark.triangle.fill", color: .systemOrange)

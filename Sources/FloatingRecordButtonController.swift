@@ -9,6 +9,13 @@ extension Notification.Name {
     static let murmurToggleFloatingControls = Notification.Name("murmurToggleFloatingControls")
     static let murmurFloatingControlsPreferenceChanged = Notification.Name("murmurFloatingControlsPreferenceChanged")
     static let murmurTranscriptionModelPreferenceChanged = Notification.Name("murmurTranscriptionModelPreferenceChanged")
+    static let murmurModelDownloadProgress = Notification.Name("murmurModelDownloadProgress")
+    static let murmurModelDownloadFinished = Notification.Name("murmurModelDownloadFinished")
+}
+
+enum ModelDownloadProgressInfo {
+    static let label = "label"
+    static let percent = "percent"
 }
 
 enum FloatingControlsPreferences {
@@ -152,7 +159,10 @@ private final class FloatingRecordControlsView: NSView {
     )
     private var defaultsObserver: NSObjectProtocol?
     private var preferenceObserver: NSObjectProtocol?
+    private var downloadProgressObserver: NSObjectProtocol?
+    private var downloadFinishedObserver: NSObjectProtocol?
     private var idleStatusColor = FloatingControlsPreferences.accentColor
+    private var currentState: DictationCoordinatorState = .idle
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -169,6 +179,8 @@ private final class FloatingRecordControlsView: NSView {
     deinit {
         if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
         if let preferenceObserver { NotificationCenter.default.removeObserver(preferenceObserver) }
+        if let downloadProgressObserver { NotificationCenter.default.removeObserver(downloadProgressObserver) }
+        if let downloadFinishedObserver { NotificationCenter.default.removeObserver(downloadFinishedObserver) }
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -176,6 +188,7 @@ private final class FloatingRecordControlsView: NSView {
     }
 
     func setState(_ state: DictationCoordinatorState) {
+        currentState = state
         switch state {
         case .idle:
             statusPill.set(text: "Murmur ready", color: idleStatusColor)
@@ -270,6 +283,32 @@ private final class FloatingRecordControlsView: NSView {
             queue: .main
         ) { [weak self] _ in
             self?.applyPreferences()
+        }
+        downloadProgressObserver = NotificationCenter.default.addObserver(
+            forName: .murmurModelDownloadProgress,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, self.canShowDownloadStatus else { return }
+            let percent = note.userInfo?[ModelDownloadProgressInfo.percent] as? Int ?? 0
+            self.statusPill.set(text: "Downloading \(percent)%", color: .systemBlue)
+        }
+        downloadFinishedObserver = NotificationCenter.default.addObserver(
+            forName: .murmurModelDownloadFinished,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, self.canShowDownloadStatus else { return }
+            self.statusPill.set(text: "Murmur ready", color: self.idleStatusColor)
+        }
+    }
+
+    private var canShowDownloadStatus: Bool {
+        switch currentState {
+        case .idle, .error:
+            return true
+        case .recording, .processing:
+            return false
         }
     }
 
