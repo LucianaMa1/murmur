@@ -105,6 +105,20 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(WhisperModelOption.allCases) { option in
+                                ModelOptionSummaryRow(
+                                    option: option,
+                                    isSelected: option.rawValue == whisperModel
+                                )
+                            }
+                        }
+
+                        Text("Language support today: Murmur is English-first. Fast and Noisy room are English-only models. Best quality is multilingual-capable, but Murmur currently runs it in English mode until language selection is added.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         Text("When you change this, Murmur prepares the selected model in the background and shows download progress in the floating controls, menu bar, and Debug.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
@@ -411,6 +425,37 @@ struct SettingsView: View {
         dictionaryTerm = ""
         dictionaryMishearing = ""
         loadDictionary()
+    }
+}
+
+private struct ModelOptionSummaryRow: View {
+    let option: WhisperModelOption
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(option.label)
+                    .font(.caption.weight(.semibold))
+                Spacer()
+                Text(option.downloadSize)
+                    .font(.caption.monospacedDigit())
+                    .foregroundColor(.secondary)
+            }
+            Text("\(option.speedSummary) · \(option.accuracySummary)")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Text("Languages: \(option.languageSupport)")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .padding(8)
+        .background(isSelected ? Color.accentColor.opacity(0.12) : Color(NSColor.controlBackgroundColor))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(isSelected ? Color.accentColor.opacity(0.35) : Color.clear, lineWidth: 1)
+        )
+        .cornerRadius(8)
     }
 }
 

@@ -117,11 +117,53 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .fast:
-            return "Optimized for speed and low latency in quiet rooms."
+            return "Fastest local model. Best for quiet English dictation and short everyday notes."
         case .noiseResistant:
-            return "Better accuracy with background noise. Slower than Fast; first use downloads about 244 MB."
+            return "More accurate in background noise. Slower than Fast, but better for longer English dictation."
         case .maxAccuracy:
-            return "Highest local accuracy for difficult audio. Slowest; first use downloads about 632 MB."
+            return "Highest local accuracy. Best for difficult audio, accents, and noisy environments."
+        }
+    }
+
+    var downloadSize: String {
+        switch self {
+        case .fast:
+            return "~142 MB"
+        case .noiseResistant:
+            return "~244 MB"
+        case .maxAccuracy:
+            return "~632 MB"
+        }
+    }
+
+    var speedSummary: String {
+        switch self {
+        case .fast:
+            return "Fastest"
+        case .noiseResistant:
+            return "Balanced"
+        case .maxAccuracy:
+            return "Slowest"
+        }
+    }
+
+    var accuracySummary: String {
+        switch self {
+        case .fast:
+            return "Good in quiet rooms"
+        case .noiseResistant:
+            return "Better with noise"
+        case .maxAccuracy:
+            return "Best quality"
+        }
+    }
+
+    var languageSupport: String {
+        switch self {
+        case .fast, .noiseResistant:
+            return "English only"
+        case .maxAccuracy:
+            return "Multilingual model; Murmur currently runs English mode"
         }
     }
 
