@@ -19,19 +19,19 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .fast: return "Fast"
-        case .noiseResistant: return "Noise-resistant"
-        case .maxAccuracy: return "Max accuracy"
+        case .noiseResistant: return "Noisy room"
+        case .maxAccuracy: return "Best quality"
         }
     }
 
     var detail: String {
         switch self {
         case .fast:
-            return "Base English model. Fastest, best for quiet rooms."
+            return "Optimized for speed and low latency in quiet rooms."
         case .noiseResistant:
-            return "Small English model. Better with background noise; first use downloads about 244 MB."
+            return "Better accuracy with background noise. Slower than Fast; first use downloads about 244 MB."
         case .maxAccuracy:
-            return "Large turbo model. Best accuracy, slower, and first use downloads about 632 MB."
+            return "Highest local accuracy for difficult audio. Slowest; first use downloads about 632 MB."
         }
     }
 

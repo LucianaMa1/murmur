@@ -82,11 +82,16 @@ struct SettingsView: View {
                         .padding(.vertical, 4)
                 }
 
-                GroupBox("Transcription") {
-                    VStack(alignment: .leading, spacing: 10) {
+                GroupBox("Speed vs Quality") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Optimize local transcription for speed, or trade a little latency for better recognition in noisier environments.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         HStack {
-                            Text("Quality").frame(width: 80, alignment: .leading)
-                            Picker("Quality", selection: $whisperModel) {
+                            Text("Optimize").frame(width: 80, alignment: .leading)
+                            Picker("Optimize", selection: $whisperModel) {
                                 ForEach(WhisperModelOption.allCases) { option in
                                     Text(option.label).tag(option.rawValue)
                                 }
@@ -99,6 +104,14 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        HStack {
+                            Text("Faster")
+                            Spacer()
+                            Text("More accurate")
+                        }
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
                 }
