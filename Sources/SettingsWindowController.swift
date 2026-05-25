@@ -110,6 +110,11 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
+                        Text("If the selected model is not ready during dictation, Murmur uses the best available fallback and logs the reason in Debug.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         HStack {
                             Text("Faster")
                             Spacer()

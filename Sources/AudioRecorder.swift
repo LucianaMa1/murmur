@@ -193,7 +193,11 @@ final class AudioRecorder {
             if let url = url,
                let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                let size = attrs[.size] as? Int, size > 1024 {
-                DebugLog.shared.add("Audio file size: \(size) bytes")
+                let seconds = Double(max(size - 44, 0)) / (self.targetSampleRate * 2.0)
+                DebugLog.shared.add(String(format: "Audio file size: %d bytes (~%.2fs)", size, seconds))
+                if seconds < 0.45 {
+                    DebugLog.shared.add("Recording was very short; Whisper may return empty text")
+                }
                 completion(url)
             } else {
                 let path = url?.path ?? "<nil>"

@@ -40,6 +40,7 @@ AI rewrite mode also supports:
 - A Dictionary UI for names, tools, commands, and mishearing fixes
 
 For noisy rooms, open Settings → **Speed vs Quality** and switch from **Fast** to **Noisy room**.
+If a larger model is not ready, Murmur falls back to the best available local model and shows the reason in Debug.
 
 ## Install
 

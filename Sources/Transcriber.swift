@@ -6,6 +6,20 @@
 import Foundation
 import WhisperKit
 
+private enum TranscriberError: LocalizedError {
+    case modelLoadTimedOut(label: String, seconds: UInt64)
+    case noModelAvailable
+
+    var errorDescription: String? {
+        switch self {
+        case .modelLoadTimedOut(let label, let seconds):
+            return "\(label) model load timed out after \(seconds) seconds"
+        case .noModelAvailable:
+            return "No Whisper model was available"
+        }
+    }
+}
+
 enum WhisperModelOption: String, CaseIterable, Identifiable {
     case fast = "openai_whisper-base.en"
     case noiseResistant = "openai_whisper-small.en"
@@ -35,6 +49,17 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
         }
     }
 
+    var fallbackChain: [WhisperModelOption] {
+        switch self {
+        case .fast:
+            return [.fast]
+        case .noiseResistant:
+            return [.noiseResistant, .fast]
+        case .maxAccuracy:
+            return [.maxAccuracy, .noiseResistant, .fast]
+        }
+    }
+
     static var selected: WhisperModelOption {
         let raw = UserDefaults.standard.string(forKey: storageKey) ?? WhisperModelOption.fast.rawValue
         return WhisperModelOption(rawValue: raw) ?? .fast
@@ -43,37 +68,123 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
 
 actor Transcriber {
 
+    private static let localLoadTimeoutSeconds: UInt64 = 20
+    private static let downloadTimeoutSeconds: UInt64 = 45
+
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
+    private var loadedOption: WhisperModelOption?
 
     func preloadSelectedModel() async {
         let selected = WhisperModelOption.selected
         DebugLog.shared.add("Preparing transcription model: \(selected.label) (\(selected.modelName))")
         do {
-            try await ensureLoaded()
-            DebugLog.shared.add("Transcription model ready: \(selected.label)")
+            try await ensureLoaded(allowDownload: true, purpose: "preload")
+            let active = loadedOption?.label ?? selected.label
+            if active == selected.label {
+                DebugLog.shared.add("Transcription model ready: \(active)")
+            } else {
+                DebugLog.shared.add("Transcription model ready via fallback: \(active) for requested \(selected.label)")
+            }
         } catch {
             DebugLog.shared.add("Transcription model preload failed: \(error.localizedDescription)")
         }
     }
 
-    /// First call downloads the model (~74MB for base.en) to Application
-    /// Support. Subsequent calls reuse the local model.
-    private func ensureLoaded() async throws {
-        let modelName = WhisperModelOption.selected.modelName
-        if whisperKit != nil, loadedModelName == modelName { return }
-        if whisperKit != nil {
-            DebugLog.shared.add("Whisper model changed; reloading \(modelName)")
-            whisperKit = nil
-            loadedModelName = nil
+    /// Preload may download the requested model. Active dictation avoids large
+    /// downloads when a local fallback can keep the user moving.
+    private func ensureLoaded(allowDownload: Bool, purpose: String) async throws {
+        let selected = WhisperModelOption.selected
+        let downloadState = allowDownload ? "allowed" : "deferred"
+        DebugLog.shared.add("Transcription model request: \(selected.label), purpose=\(purpose), downloads=\(downloadState)")
+
+        if whisperKit != nil, loadedModelName == selected.modelName {
+            DebugLog.shared.add("Selected transcription model already loaded: \(selected.label)")
+            return
         }
 
-        let localModelFolder = existingLocalModelFolder(modelName: modelName)
-        if let localModelFolder {
-            DebugLog.shared.add("Loading local Whisper model: \(localModelFolder.path)")
-        } else {
-            DebugLog.shared.add("Local Whisper model not found; attempting download for \(modelName)")
+        if let loadedOption {
+            DebugLog.shared.add("Selected transcription model is \(selected.label); currently loaded model is \(loadedOption.label)")
         }
+
+        var lastError: Error?
+        for option in selected.fallbackChain {
+            if whisperKit != nil, loadedModelName == option.modelName {
+                DebugLog.shared.add("Using already-loaded transcription model: \(option.label)")
+                return
+            }
+
+            let localModelFolder = existingLocalModelFolder(modelName: option.modelName)
+            if !allowDownload, localModelFolder == nil {
+                DebugLog.shared.add("Skipping \(option.label) download during \(purpose); model is not local yet")
+                continue
+            }
+
+            do {
+                let kit = try await loadWhisperKit(
+                    option: option,
+                    requested: selected,
+                    localModelFolder: localModelFolder,
+                    allowDownload: allowDownload
+                )
+                whisperKit = kit
+                loadedModelName = option.modelName
+                loadedOption = option
+                if option == selected {
+                    DebugLog.shared.add("WhisperKit loaded with selected model: \(option.label) (\(option.modelName))")
+                } else {
+                    DebugLog.shared.add("WhisperKit fallback active: using \(option.label) because \(selected.label) was unavailable")
+                }
+                return
+            } catch {
+                lastError = error
+                DebugLog.shared.add("Whisper model load failed for \(option.label): \(error.localizedDescription)")
+            }
+        }
+
+        if let loadedOption, whisperKit != nil {
+            DebugLog.shared.add("Using previous loaded model after \(selected.label) was unavailable: \(loadedOption.label)")
+            return
+        }
+
+        if !allowDownload {
+            DebugLog.shared.add("No local transcription model available for dictation; downloading Fast emergency model")
+            do {
+                let emergency = WhisperModelOption.fast
+                let kit = try await loadWhisperKit(
+                    option: emergency,
+                    requested: selected,
+                    localModelFolder: existingLocalModelFolder(modelName: emergency.modelName),
+                    allowDownload: true
+                )
+                whisperKit = kit
+                loadedModelName = emergency.modelName
+                loadedOption = emergency
+                DebugLog.shared.add("Emergency transcription fallback ready: \(emergency.label)")
+                return
+            } catch {
+                lastError = error
+                DebugLog.shared.add("Emergency Fast model load failed: \(error.localizedDescription)")
+            }
+        }
+
+        throw lastError ?? TranscriberError.noModelAvailable
+    }
+
+    private func loadWhisperKit(
+        option: WhisperModelOption,
+        requested: WhisperModelOption,
+        localModelFolder: URL?,
+        allowDownload: Bool
+    ) async throws -> WhisperKit {
+        let modelName = option.modelName
+        if let localModelFolder {
+            DebugLog.shared.add("Loading local Whisper model \(option.label): \(localModelFolder.path)")
+        } else {
+            let fallbackNote = option == requested ? "" : " as fallback for \(requested.label)"
+            DebugLog.shared.add("Local Whisper model not found; attempting download for \(option.label)\(fallbackNote): \(modelName)")
+        }
+        let timeout = localModelFolder == nil ? Self.downloadTimeoutSeconds : Self.localLoadTimeoutSeconds
         let config = WhisperKitConfig(
             model: localModelFolder == nil ? modelName : nil,
             downloadBase: modelDownloadBase(),
@@ -82,11 +193,11 @@ actor Transcriber {
             logLevel: .error,
             prewarm: true,
             load: true,
-            download: localModelFolder == nil
+            download: localModelFolder == nil && allowDownload
         )
-        whisperKit = try await WhisperKit(config)
-        loadedModelName = modelName
-        DebugLog.shared.add("WhisperKit loaded with model \(modelName)")
+        return try await withModelLoadTimeout(seconds: timeout, label: option.label) {
+            try await WhisperKit(config)
+        }
     }
 
     private func existingLocalModelFolder(modelName: String) -> URL? {
@@ -102,6 +213,10 @@ actor Transcriber {
         ]
         let hasRequiredFiles = requiredModelNames.allSatisfy {
             FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
+        }
+
+        if !hasRequiredFiles, FileManager.default.fileExists(atPath: folder.path) {
+            DebugLog.shared.add("Found incomplete Whisper model folder; will try download/repair: \(folder.path)")
         }
 
         return hasRequiredFiles ? folder : nil
@@ -124,20 +239,116 @@ actor Transcriber {
     }
 
     func transcribe(audioURL: URL) async throws -> String {
-        try await ensureLoaded()
+        defer { try? FileManager.default.removeItem(at: audioURL) }
+        try await ensureLoaded(allowDownload: false, purpose: "dictation")
         guard let kit = whisperKit else {
-            throw NSError(domain: "Transcriber", code: -1)
+            throw TranscriberError.noModelAvailable
         }
 
-        DebugLog.shared.add("Calling WhisperKit.transcribe")
+        let modelLabel = loadedOption?.label ?? loadedModelName ?? "<unknown>"
+        DebugLog.shared.add("Calling WhisperKit.transcribe with model \(modelLabel)")
+        do {
+            let text = try await transcribeOnce(using: kit, audioURL: audioURL, modelLabel: modelLabel)
+            if !text.isEmpty {
+                return text
+            }
+
+            DebugLog.shared.add("WhisperKit returned empty text; checking for a local higher-quality retry")
+            if let retry = higherQualityLocalRetry(after: loadedOption) {
+                return try await retryEmptyTranscription(
+                    audioURL: audioURL,
+                    option: retry.option,
+                    localModelFolder: retry.localModelFolder,
+                    previousKit: kit,
+                    previousOption: loadedOption,
+                    previousModelName: loadedModelName
+                )
+            }
+
+            DebugLog.shared.add("No local higher-quality retry model available; empty transcription will be ignored")
+            return text
+        } catch {
+            DebugLog.shared.add("WhisperKit transcription failed with \(loadedOption?.label ?? "current model"): \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    private func transcribeOnce(using kit: WhisperKit, audioURL: URL, modelLabel: String) async throws -> String {
         let results = try await kit.transcribe(audioPath: audioURL.path)
-        DebugLog.shared.add("WhisperKit returned \(results.count) segment(s)")
+        DebugLog.shared.add("WhisperKit returned \(results.count) segment(s) from \(modelLabel)")
+        let text = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
+            DebugLog.shared.add("WhisperKit output was empty from \(modelLabel)")
+        }
+        return text
+    }
 
-        // Clean up the temp file.
-        try? FileManager.default.removeItem(at: audioURL)
+    private func retryEmptyTranscription(
+        audioURL: URL,
+        option: WhisperModelOption,
+        localModelFolder: URL,
+        previousKit: WhisperKit,
+        previousOption: WhisperModelOption?,
+        previousModelName: String?
+    ) async throws -> String {
+        DebugLog.shared.add("Retrying empty transcription with local \(option.label) model")
+        do {
+            let retryKit = try await loadWhisperKit(
+                option: option,
+                requested: WhisperModelOption.selected,
+                localModelFolder: localModelFolder,
+                allowDownload: false
+            )
+            whisperKit = retryKit
+            loadedModelName = option.modelName
+            loadedOption = option
+            let retryText = try await transcribeOnce(using: retryKit, audioURL: audioURL, modelLabel: option.label)
+            if retryText.isEmpty {
+                DebugLog.shared.add("Higher-quality retry also returned empty text")
+            } else {
+                DebugLog.shared.add("Higher-quality retry recovered \(retryText.count) character(s)")
+            }
+            return retryText
+        } catch {
+            whisperKit = previousKit
+            loadedOption = previousOption
+            loadedModelName = previousModelName
+            DebugLog.shared.add("Higher-quality retry failed; restored previous model: \(error.localizedDescription)")
+            return ""
+        }
+    }
 
-        // Concatenate segments, strip Whisper's leading space, trim.
-        let text = results.map(\.text).joined(separator: " ")
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func higherQualityLocalRetry(after option: WhisperModelOption?) -> (option: WhisperModelOption, localModelFolder: URL)? {
+        let qualityOrder: [WhisperModelOption] = [.fast, .noiseResistant, .maxAccuracy]
+        let currentIndex = option.flatMap { qualityOrder.firstIndex(of: $0) } ?? -1
+        for candidate in qualityOrder.dropFirst(currentIndex + 1) {
+            if let folder = existingLocalModelFolder(modelName: candidate.modelName) {
+                DebugLog.shared.add("Local retry candidate found: \(candidate.label)")
+                return (candidate, folder)
+            }
+        }
+        return nil
+    }
+
+    private nonisolated func withModelLoadTimeout<T>(
+        seconds: UInt64,
+        label: String,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            defer { group.cancelAll() }
+            group.addTask {
+                try await operation()
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+                throw TranscriberError.modelLoadTimedOut(label: label, seconds: seconds)
+            }
+
+            guard let result = try await group.next() else {
+                throw TranscriberError.modelLoadTimedOut(label: label, seconds: seconds)
+            }
+            return result
+        }
     }
 }
