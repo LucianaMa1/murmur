@@ -114,28 +114,6 @@ struct SettingsView: View {
                             }
                         }
 
-                        Text("Language support today: Murmur is English-first. Fast and Noisy room are English-only models. Best quality is multilingual-capable, but Murmur currently runs it in English mode until language selection is added.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("When you change this, Murmur prepares the selected model in the background and shows download progress in the floating controls, menu bar, and Debug.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("If the selected model is not ready during dictation, Murmur uses the best available fallback and logs the reason in Debug.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        HStack {
-                            Text("Faster")
-                            Spacer()
-                            Text("More accurate")
-                        }
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
                 }
