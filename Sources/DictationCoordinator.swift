@@ -142,16 +142,27 @@ final class DictationCoordinator {
     }
 
     private func process(audioURL: URL, mode: DictationMode, sessionID: UUID?) async {
+        var transcriptionCompleted = false
         do {
             DebugLog.shared.add("Transcription started")
             let transcript = try await transcriber.transcribe(audioURL: audioURL)
             DebugLog.shared.add("Transcription finished with \(transcript.count) character(s)")
             guard !transcript.isEmpty else {
+                let modelLabel = await transcriber.currentModelLabel()
+                FailedRecordingStore.preserve(
+                    audioURL: audioURL,
+                    reason: "empty_transcription",
+                    mode: mode,
+                    modelLabel: modelLabel,
+                    targetApp: targetApp
+                )
                 finishSession(sessionID)
                 onStateChange?(.idle)
                 StatusBarController.shared.setIdle()
                 return
             }
+            transcriptionCompleted = true
+            try? FileManager.default.removeItem(at: audioURL)
 
             let finalText: String
             switch mode {
@@ -175,6 +186,18 @@ final class DictationCoordinator {
             StatusBarController.shared.setIdle()
 
         } catch {
+            if !transcriptionCompleted {
+                let modelLabel = await transcriber.currentModelLabel()
+                FailedRecordingStore.preserve(
+                    audioURL: audioURL,
+                    reason: "transcription_failed",
+                    mode: mode,
+                    modelLabel: modelLabel,
+                    targetApp: targetApp
+                )
+            } else {
+                try? FileManager.default.removeItem(at: audioURL)
+            }
             DebugLog.shared.add("Pipeline error: \(error.localizedDescription)")
             onStateChange?(.error(error.localizedDescription))
             StatusBarController.shared.setError(error.localizedDescription)

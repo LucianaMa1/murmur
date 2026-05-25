@@ -6,22 +6,38 @@
 import AppKit
 import SwiftUI
 
+struct DebugLogEntry: Identifiable {
+    let id = UUID()
+    let text: String
+    let linkURL: URL?
+    let linkLabel: String?
+}
+
 final class DebugLog: ObservableObject {
     static let shared = DebugLog()
 
-    @Published private(set) var lines: [String] = []
+    @Published private(set) var entries: [DebugLogEntry] = []
 
     private init() {}
 
     func add(_ message: String) {
+        append(message: message, linkURL: nil, linkLabel: nil)
+    }
+
+    func addLink(_ message: String, url: URL, label: String) {
+        append(message: message, linkURL: url, linkLabel: label)
+    }
+
+    private func append(message: String, linkURL: URL?, linkLabel: String?) {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss.SSS"
         let line = "[\(formatter.string(from: Date()))] \(message)"
+        let entry = DebugLogEntry(text: line, linkURL: linkURL, linkLabel: linkLabel)
 
         DispatchQueue.main.async {
-            self.lines.append(line)
-            if self.lines.count > 300 {
-                self.lines.removeFirst(self.lines.count - 300)
+            self.entries.append(entry)
+            if self.entries.count > 300 {
+                self.entries.removeFirst(self.entries.count - 300)
             }
             print(line)
         }
@@ -29,7 +45,7 @@ final class DebugLog: ObservableObject {
 
     func clear() {
         DispatchQueue.main.async {
-            self.lines.removeAll()
+            self.entries.removeAll()
         }
     }
 }
@@ -78,19 +94,25 @@ private struct DebugView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 3) {
-                        ForEach(Array(log.lines.enumerated()), id: \.offset) { index, line in
-                            Text(line)
-                                .font(.system(size: 11, design: .monospaced))
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .id(index)
+                        ForEach(Array(log.entries.enumerated()), id: \.element.id) { index, entry in
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(entry.text)
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                if let linkURL = entry.linkURL, let linkLabel = entry.linkLabel {
+                                    Link(linkLabel, destination: linkURL)
+                                        .font(.system(size: 11, weight: .medium))
+                                }
+                            }
+                            .id(index)
                         }
                     }
                     .padding(8)
                 }
                 .background(Color(nsColor: .textBackgroundColor))
                 .border(Color.gray.opacity(0.25))
-                .onChange(of: log.lines.count) { _, count in
+                .onChange(of: log.entries.count) { _, count in
                     guard count > 0 else { return }
                     proxy.scrollTo(count - 1, anchor: .bottom)
                 }

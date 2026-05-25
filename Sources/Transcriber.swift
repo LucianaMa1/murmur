@@ -397,7 +397,6 @@ actor Transcriber {
     }
 
     func transcribe(audioURL: URL) async throws -> String {
-        defer { try? FileManager.default.removeItem(at: audioURL) }
         try await ensureLoaded(allowDownload: false, purpose: "dictation")
         guard let kit = whisperKit else {
             throw TranscriberError.noModelAvailable
@@ -434,6 +433,10 @@ actor Transcriber {
             DebugLog.shared.add("WhisperKit transcription failed with \(loadedOption?.label ?? "current model"): \(error.localizedDescription)")
             throw error
         }
+    }
+
+    func currentModelLabel() -> String {
+        loadedOption?.label ?? WhisperModelOption.selected.label
     }
 
     private func transcribeOnce(
