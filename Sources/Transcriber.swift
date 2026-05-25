@@ -6,26 +6,58 @@
 import Foundation
 import WhisperKit
 
+enum WhisperModelOption: String, CaseIterable, Identifiable {
+    case fast = "openai_whisper-base.en"
+    case noiseResistant = "openai_whisper-small.en"
+    case maxAccuracy = "openai_whisper-large-v3-v20240930_turbo_632MB"
+
+    static let storageKey = "whisper_model"
+
+    var id: String { rawValue }
+    var modelName: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .fast: return "Fast"
+        case .noiseResistant: return "Noise-resistant"
+        case .maxAccuracy: return "Max accuracy"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .fast:
+            return "Base English model. Fastest, best for quiet rooms."
+        case .noiseResistant:
+            return "Small English model. Better with background noise; first use downloads about 244 MB."
+        case .maxAccuracy:
+            return "Large turbo model. Best accuracy, slower, and first use downloads about 632 MB."
+        }
+    }
+
+    static var selected: WhisperModelOption {
+        let raw = UserDefaults.standard.string(forKey: storageKey) ?? WhisperModelOption.fast.rawValue
+        return WhisperModelOption(rawValue: raw) ?? .fast
+    }
+}
+
 actor Transcriber {
 
     private var whisperKit: WhisperKit?
-
-    /// English-only model. distil-large-v3 is a 6x smaller, 6x faster
-    /// distilled version of large-v3 with negligible accuracy loss.
-    /// Other choices: "openai_whisper-base.en" (74MB, fastest),
-    /// "openai_whisper-small.en" (244MB), "openai_whisper-large-v3-turbo".
-    private let modelName: String
-
-    init(modelName: String = "openai_whisper-base.en") {
-        self.modelName = modelName
-    }
+    private var loadedModelName: String?
 
     /// First call downloads the model (~74MB for base.en) to Application
     /// Support. Subsequent calls reuse the local model.
     private func ensureLoaded() async throws {
-        if whisperKit != nil { return }
+        let modelName = WhisperModelOption.selected.modelName
+        if whisperKit != nil, loadedModelName == modelName { return }
+        if whisperKit != nil {
+            DebugLog.shared.add("Whisper model changed; reloading \(modelName)")
+            whisperKit = nil
+            loadedModelName = nil
+        }
 
-        let localModelFolder = existingLocalModelFolder()
+        let localModelFolder = existingLocalModelFolder(modelName: modelName)
         if let localModelFolder {
             DebugLog.shared.add("Loading local Whisper model: \(localModelFolder.path)")
         } else {
@@ -42,10 +74,11 @@ actor Transcriber {
             download: localModelFolder == nil
         )
         whisperKit = try await WhisperKit(config)
-        DebugLog.shared.add("WhisperKit loaded")
+        loadedModelName = modelName
+        DebugLog.shared.add("WhisperKit loaded with model \(modelName)")
     }
 
-    private func existingLocalModelFolder() -> URL? {
+    private func existingLocalModelFolder(modelName: String) -> URL? {
         let folder = modelDownloadBase()
             .appendingPathComponent("argmaxinc", isDirectory: true)
             .appendingPathComponent("whisperkit-coreml", isDirectory: true)

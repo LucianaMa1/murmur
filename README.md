@@ -39,6 +39,8 @@ AI rewrite mode also supports:
 - Tone and length preferences per profile
 - A Dictionary UI for names, tools, commands, and mishearing fixes
 
+For noisy rooms, open Settings → Transcription and switch Quality from **Fast** to **Noise-resistant**.
+
 ## Install
 
 Requires macOS 14+. Apple Silicon recommended.

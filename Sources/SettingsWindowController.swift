@@ -35,6 +35,7 @@ final class SettingsWindowController {
 
 struct SettingsView: View {
     @AppStorage("openai_model") private var model: String = "gpt-4o-mini"
+    @AppStorage(WhisperModelOption.storageKey) private var whisperModel: String = WhisperModelOption.fast.rawValue
     @AppStorage("auto_paste") private var autoPaste: Bool = true
     @AppStorage("llm_system_prompt") private var prompt: String = OpenAIClient.defaultSystemPrompt
     @AppStorage(FloatingControlsPreferences.enabledKey) private var floatingControlsEnabled: Bool = true
@@ -79,6 +80,27 @@ struct SettingsView: View {
                 GroupBox("Behavior") {
                     Toggle("Auto-paste after transcription", isOn: $autoPaste)
                         .padding(.vertical, 4)
+                }
+
+                GroupBox("Transcription") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Quality").frame(width: 80, alignment: .leading)
+                            Picker("Quality", selection: $whisperModel) {
+                                ForEach(WhisperModelOption.allCases) { option in
+                                    Text(option.label).tag(option.rawValue)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                        }
+
+                        Text(selectedWhisperModel.detail)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 4)
                 }
 
                 GroupBox("Style Profiles") {
@@ -332,6 +354,10 @@ struct SettingsView: View {
             entry.term.lowercased().contains(query)
             || entry.mishearing?.lowercased().contains(query) == true
         }
+    }
+
+    private var selectedWhisperModel: WhisperModelOption {
+        WhisperModelOption(rawValue: whisperModel) ?? .fast
     }
 
     private func loadStyleProfile() {
