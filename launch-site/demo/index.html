@@ -54,6 +54,15 @@
         box-shadow: 1px 2px 0 var(--ink);
       }
 
+      body.is-embed .home-link {
+        display: none;
+      }
+
+      body.is-embed .app {
+        min-height: 100vh;
+        padding: 14px;
+      }
+
       .app {
         display: grid;
         grid-template-columns: minmax(340px, 1fr) minmax(0, 2fr);
@@ -552,6 +561,11 @@
     </main>
 
     <script>
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("embed") === "1") {
+        document.body.classList.add("is-embed");
+      }
+
       const states = [
         {
           badge: "Fn",
@@ -593,7 +607,10 @@
       const previous = document.getElementById("previous");
       const next = document.getElementById("next");
       const play = document.getElementById("play");
-      let activeIndex = 0;
+      let activeIndex = Number.parseInt(params.get("state") || "0", 10);
+      if (!Number.isFinite(activeIndex)) {
+        activeIndex = 0;
+      }
       let timer = null;
       let hasInteracted = false;
 
@@ -679,9 +696,9 @@
       });
 
       requestAnimationFrame(() => {
-        render(0);
+        render(activeIndex);
         window.setTimeout(() => {
-          if (!hasInteracted) {
+          if (!hasInteracted && params.get("autoplay") !== "0") {
             startAutoDemo();
           }
         }, 900);
