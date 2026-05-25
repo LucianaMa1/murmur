@@ -50,9 +50,9 @@ Choose a local transcription model in **Settings → Speed vs Quality → Optimi
 |---|---|---:|---|---|
 | Fast | `openai_whisper-base.en` | ~142 MB | Lowest latency in quiet rooms | English only |
 | Noisy room | `openai_whisper-small.en` | ~244 MB | Better English accuracy with background noise | English only |
-| Best quality | `openai_whisper-large-v3-v20240930_turbo_632MB` | ~632 MB | Difficult audio, accents, and noisy environments | Multilingual model; Murmur currently runs English mode |
+| Best quality | `openai_whisper-large-v3-v20240930_turbo_632MB` | ~632 MB | Difficult audio, accents, and noisy environments | Auto-detects supported languages |
 
-Murmur currently exposes English dictation only. The Best quality model is multilingual-capable, but language selection and auto-detection are not yet productized in the app.
+Fast and Noisy room use English-only models. Best quality enables automatic language detection for supported languages.
 
 ## Install
 

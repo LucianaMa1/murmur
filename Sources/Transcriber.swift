@@ -163,7 +163,16 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
         case .fast, .noiseResistant:
             return "English only"
         case .maxAccuracy:
-            return "Multilingual model; Murmur currently runs English mode"
+            return "Auto-detects supported languages"
+        }
+    }
+
+    var decodeOptions: DecodingOptions? {
+        switch self {
+        case .fast, .noiseResistant:
+            return nil
+        case .maxAccuracy:
+            return DecodingOptions(detectLanguage: true)
         }
     }
 
@@ -397,7 +406,12 @@ actor Transcriber {
         let modelLabel = loadedOption?.label ?? loadedModelName ?? "<unknown>"
         DebugLog.shared.add("Calling WhisperKit.transcribe with model \(modelLabel)")
         do {
-            let text = try await transcribeOnce(using: kit, audioURL: audioURL, modelLabel: modelLabel)
+            let text = try await transcribeOnce(
+                using: kit,
+                audioURL: audioURL,
+                modelLabel: modelLabel,
+                modelOption: loadedOption
+            )
             if !text.isEmpty {
                 return text
             }
@@ -422,9 +436,21 @@ actor Transcriber {
         }
     }
 
-    private func transcribeOnce(using kit: WhisperKit, audioURL: URL, modelLabel: String) async throws -> String {
-        let results = try await kit.transcribe(audioPath: audioURL.path)
+    private func transcribeOnce(
+        using kit: WhisperKit,
+        audioURL: URL,
+        modelLabel: String,
+        modelOption: WhisperModelOption?
+    ) async throws -> String {
+        if modelOption == .maxAccuracy {
+            DebugLog.shared.add("Language auto-detect enabled for Best quality")
+        }
+        let results = try await kit.transcribe(audioPath: audioURL.path, decodeOptions: modelOption?.decodeOptions)
         DebugLog.shared.add("WhisperKit returned \(results.count) segment(s) from \(modelLabel)")
+        let languages = Array(Set(results.map(\.language))).sorted()
+        if !languages.isEmpty {
+            DebugLog.shared.add("WhisperKit language result: \(languages.joined(separator: ", "))")
+        }
         let text = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
         if text.isEmpty {
             DebugLog.shared.add("WhisperKit output was empty from \(modelLabel)")
@@ -451,7 +477,12 @@ actor Transcriber {
             whisperKit = retryKit
             loadedModelName = option.modelName
             loadedOption = option
-            let retryText = try await transcribeOnce(using: retryKit, audioURL: audioURL, modelLabel: option.label)
+            let retryText = try await transcribeOnce(
+                using: retryKit,
+                audioURL: audioURL,
+                modelLabel: option.label,
+                modelOption: option
+            )
             if retryText.isEmpty {
                 DebugLog.shared.add("Higher-quality retry also returned empty text")
             } else {
