@@ -40,6 +40,7 @@ struct SettingsView: View {
     @AppStorage(FloatingControlsPreferences.enabledKey) private var floatingControlsEnabled: Bool = true
     @AppStorage(FloatingControlsPreferences.accentKey) private var floatingControlsAccent: String = "mint"
     @AppStorage(FloatingControlsPreferences.styleKey) private var floatingControlsStyle: String = "glass"
+    @AppStorage(StyleProfileStore.overrideKey) private var styleProfileOverride: String = "auto"
     @State private var apiKey: String = Keychain.read() ?? ""
     @State private var saved: Bool = false
     @State private var selectedStyleCategory: StyleProfileCategory = .email
@@ -82,6 +83,25 @@ struct SettingsView: View {
 
                 GroupBox("Style Profiles") {
                     VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Use profile")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Picker("Use profile", selection: $styleProfileOverride) {
+                                Text("Auto").tag("auto")
+                                ForEach(StyleProfileCategory.allCases) { category in
+                                    Text(category.label).tag(category.rawValue)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                        }
+
+                        Divider()
+
+                        Text("Edit profile")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         Picker("Applies to", selection: $selectedStyleCategory) {
                             ForEach(StyleProfileCategory.allCases) { category in
                                 Text(category.label).tag(category)
@@ -118,7 +138,7 @@ struct SettingsView: View {
                         TextField("Small habit, e.g. no exclamation marks or always sign off with Luciana", text: $styleHabit)
                             .textFieldStyle(.roundedBorder)
 
-                        Text("AI rewrite mode automatically picks a profile from the current app: Mail/Outlook, Slack/Cursor, Messages, or Other.")
+                        Text("Style only affects Fn + Control AI rewrite. Auto picks from the current app; choose a specific profile above to force it everywhere.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

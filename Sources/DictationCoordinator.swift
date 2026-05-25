@@ -80,10 +80,11 @@ final class DictationCoordinator {
         startRecording(mode)
 
         if mode == .llm {
-            let category = StyleProfileStore.category(for: targetApp)
-            activeStyleProfile = StyleProfileStore.profile(for: category)
+            let active = StyleProfileStore.activeCategory(for: targetApp)
+            activeStyleProfile = StyleProfileStore.profile(for: active.category)
             if let activeStyleProfile {
-                DebugLog.shared.add("AI mode style profile: \(activeStyleProfile.category.label)")
+                DebugLog.shared.add("AI mode style profile: \(activeStyleProfile.category.label) via \(active.reason) for \(active.appDescription)")
+                DebugLog.shared.add("AI mode style settings: tone=\(activeStyleProfile.tone.label), length=\(activeStyleProfile.length.label), habitChars=\(activeStyleProfile.habit.count)")
             }
             SelectionReader.selectedText(in: targetApp) { [weak self] context in
                 Task { @MainActor in

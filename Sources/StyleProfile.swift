@@ -54,13 +54,13 @@ enum StyleTone: String, CaseIterable, Identifiable {
     var promptInstruction: String {
         switch self {
         case .formal:
-            return "Use a polished, professional tone. Avoid slang and excessive enthusiasm."
+            return "Rewrite into a polished, professional tone. Use complete sentences, clear structure, and no slang."
         case .warm:
-            return "Use a warm, natural tone. Sound human and considerate without becoming wordy."
+            return "Rewrite into a warm, natural tone. Sound human and considerate without becoming wordy."
         case .casual:
-            return "Use a relaxed, conversational tone. Keep punctuation light and natural."
+            return "Rewrite into a relaxed, conversational tone. Use contractions, simple phrasing, and light punctuation."
         case .excited:
-            return "Use an upbeat tone with a little more energy, while staying clear and tasteful."
+            return "Rewrite into an upbeat tone with a little more energy. A tasteful exclamation mark is okay."
         }
     }
 }
@@ -83,11 +83,11 @@ enum StyleLength: String, CaseIterable, Identifiable {
     var promptInstruction: String {
         switch self {
         case .direct:
-            return "Keep it brief and to the point. Remove unnecessary context."
+            return "Make it short and direct. Prefer one or two concise sentences unless the user asks for more."
         case .natural:
             return "Use a standard length for the situation. Include enough context to feel complete."
         case .thorough:
-            return "Include useful context and structure when it helps the reader understand or act."
+            return "Make it more complete. Add useful context and structure when it helps the reader understand or act."
         }
     }
 }
@@ -101,6 +101,7 @@ struct StyleProfile {
     var promptInstructions: String {
         var lines = [
             "Writing style profile: \(category.label)",
+            "Apply this profile visibly in the final rewritten output whenever AI rewrite mode is used.",
             "Tone: \(tone.promptInstruction)",
             "Length: \(length.promptInstruction)"
         ]
@@ -115,6 +116,8 @@ struct StyleProfile {
 }
 
 enum StyleProfileStore {
+    static let overrideKey = "style_profile_override"
+
     static func profile(for category: StyleProfileCategory) -> StyleProfile {
         let defaults = UserDefaults.standard
         let toneRaw = defaults.string(forKey: key("tone", category: category))
@@ -126,6 +129,22 @@ enum StyleProfileStore {
             tone: toneRaw.flatMap(StyleTone.init(rawValue:)) ?? category.defaultTone,
             length: lengthRaw.flatMap(StyleLength.init(rawValue:)) ?? category.defaultLength,
             habit: habit
+        )
+    }
+
+    static func activeCategory(for app: NSRunningApplication?) -> (category: StyleProfileCategory, reason: String, appDescription: String) {
+        if let override = overrideCategory {
+            return (
+                override,
+                "manual override",
+                appDescription(for: app)
+            )
+        }
+
+        return (
+            category(for: app),
+            "auto app match",
+            appDescription(for: app)
         )
     }
 
@@ -156,6 +175,18 @@ enum StyleProfileStore {
             return .casual
         }
         return .other
+    }
+
+    static var overrideCategory: StyleProfileCategory? {
+        let raw = UserDefaults.standard.string(forKey: overrideKey) ?? "auto"
+        guard raw != "auto" else { return nil }
+        return StyleProfileCategory(rawValue: raw)
+    }
+
+    static func appDescription(for app: NSRunningApplication?) -> String {
+        let name = app?.localizedName ?? "<unknown>"
+        let bundleID = app?.bundleIdentifier ?? "<unknown>"
+        return "\(name) (\(bundleID))"
     }
 
     private static func key(_ field: String, category: StyleProfileCategory) -> String {

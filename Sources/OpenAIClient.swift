@@ -258,6 +258,10 @@ final class OpenAIClient {
 
         let stylePrompt = styleProfile.map { """
 
+        Style profile instructions:
+        These style instructions override generic "preserve original wording" guidance when they conflict.
+        If the transcript is a draft, rewrite it into this style while preserving the user's meaning.
+        If the transcript is an instruction about selected context, produce the final result in this style.
         \($0.promptInstructions)
 
         """ } ?? ""
