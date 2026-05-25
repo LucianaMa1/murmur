@@ -7,7 +7,7 @@ set -e
 
 REPO="${MURMUR_REPO:-LucianaMa1/murmur}"
 BRANCH="${MURMUR_BRANCH:-main}"
-INSTALL_DIR="$HOME/.murmur"
+SOURCE_DIR="${MURMUR_SOURCE_DIR:-$HOME/Library/Caches/Murmur/source}"
 
 echo "🌊 Installing Murmur…"
 echo ""
@@ -34,17 +34,17 @@ if ! command -v git &> /dev/null; then
 fi
 
 # Fetch source -----------------------------------------------------------------
-mkdir -p "$INSTALL_DIR"
-if [[ -d "$INSTALL_DIR/.git" ]]; then
+mkdir -p "$(dirname "$SOURCE_DIR")"
+if [[ -d "$SOURCE_DIR/.git" ]]; then
     echo "📥 Updating existing checkout…"
-    cd "$INSTALL_DIR"
+    cd "$SOURCE_DIR"
     git fetch origin "$BRANCH"
     git reset --hard "origin/$BRANCH"
 else
     echo "📥 Cloning $REPO…"
-    rm -rf "$INSTALL_DIR"
-    git clone --branch "$BRANCH" "https://github.com/$REPO.git" "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
+    rm -rf "$SOURCE_DIR"
+    git clone --branch "$BRANCH" "https://github.com/$REPO.git" "$SOURCE_DIR"
+    cd "$SOURCE_DIR"
 fi
 
 # Build ------------------------------------------------------------------------
@@ -56,6 +56,12 @@ chmod +x build.sh
 # Install ----------------------------------------------------------------------
 echo ""
 echo "📦 Installing to /Applications…"
+echo "🛑 Stopping any running Murmur instance…"
+osascript -e 'tell application "Murmur" to quit' >/dev/null 2>&1 || true
+sleep 1
+pkill -x "Murmur" >/dev/null 2>&1 || true
+sleep 0.5
+
 if [[ -d "/Applications/Murmur.app" ]]; then
     rm -rf "/Applications/Murmur.app"
 fi
