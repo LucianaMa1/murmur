@@ -49,6 +49,12 @@ final class DictationCoordinator {
         hotkeys.stop()
     }
 
+    func preloadTranscriptionModel() {
+        Task {
+            await transcriber.preloadSelectedModel()
+        }
+    }
+
     func beginMouseDictation(mode: DictationMode) {
         DebugLog.shared.add("Mouse dictation begin requested, mode=\(mode == .raw ? "raw" : "llm")")
         handlePress(mode)

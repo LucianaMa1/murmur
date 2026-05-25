@@ -46,6 +46,17 @@ actor Transcriber {
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
 
+    func preloadSelectedModel() async {
+        let selected = WhisperModelOption.selected
+        DebugLog.shared.add("Preparing transcription model: \(selected.label) (\(selected.modelName))")
+        do {
+            try await ensureLoaded()
+            DebugLog.shared.add("Transcription model ready: \(selected.label)")
+        } catch {
+            DebugLog.shared.add("Transcription model preload failed: \(error.localizedDescription)")
+        }
+    }
+
     /// First call downloads the model (~74MB for base.en) to Application
     /// Support. Subsequent calls reuse the local model.
     private func ensureLoaded() async throws {

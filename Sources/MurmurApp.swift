@@ -34,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installFloatingControlObservers()
         DebugLog.shared.add("App launched")
         DebugLog.shared.add("Floating hold-to-speak button shown")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.coordinator.preloadTranscriptionModel()
+        }
         if ClipboardWriter.ensureAccessibilityPermission() {
             DebugLog.shared.add("Accessibility permission is trusted")
         } else {
@@ -80,6 +83,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        observerTokens.append(contentsOf: [toggle, preference])
+        let transcriptionModel = NotificationCenter.default.addObserver(
+            forName: .murmurTranscriptionModelPreferenceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.coordinator.preloadTranscriptionModel()
+            }
+        }
+
+        observerTokens.append(contentsOf: [toggle, preference, transcriptionModel])
     }
 }

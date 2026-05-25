@@ -8,6 +8,7 @@ import AppKit
 extension Notification.Name {
     static let murmurToggleFloatingControls = Notification.Name("murmurToggleFloatingControls")
     static let murmurFloatingControlsPreferenceChanged = Notification.Name("murmurFloatingControlsPreferenceChanged")
+    static let murmurTranscriptionModelPreferenceChanged = Notification.Name("murmurTranscriptionModelPreferenceChanged")
 }
 
 enum FloatingControlsPreferences {

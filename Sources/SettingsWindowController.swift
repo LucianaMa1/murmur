@@ -105,6 +105,11 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
 
+                        Text("When you change this, Murmur prepares the selected model in the background so your next dictation does not wait for the download.")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         HStack {
                             Text("Faster")
                             Spacer()
@@ -351,6 +356,9 @@ struct SettingsView: View {
         }
         .onChange(of: floatingControlsEnabled) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
+        }
+        .onChange(of: whisperModel) { _, _ in
+            NotificationCenter.default.post(name: .murmurTranscriptionModelPreferenceChanged, object: nil)
         }
         .onChange(of: floatingControlsAccent) { _, _ in
             NotificationCenter.default.post(name: .murmurFloatingControlsPreferenceChanged, object: nil)
