@@ -87,6 +87,14 @@ launch-site/   public website
 scripts/       icon generation helper
 ```
 
+## Acknowledgements
+
+Murmur uses [WhisperKit](https://github.com/argmaxinc/WhisperKit) for local on-device speech recognition.
+
+WhisperKit runs OpenAI Whisper speech recognition models, including `openai_whisper-base.en`, `openai_whisper-small.en`, and `openai_whisper-large-v3-turbo`. Whisper was developed by OpenAI and released under the MIT License.
+
+AI rewrite mode uses the OpenAI API. Murmur sends text, not audio, to OpenAI for rewrite requests.
+
 ## License
 
 MIT
