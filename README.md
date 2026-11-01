@@ -78,6 +78,16 @@ swift build
 open dist/Murmur.app
 ```
 
+## Tests
+
+With Swift 6 or later, run `bash scripts/test.sh` for model-cache, progress,
+concurrency, cancellation, and timeout regression tests.
+
+To also exercise local speech recognition, set `MURMUR_TEST_AUDIO` to a WAV file
+and run the same command. Set `MURMUR_TEST_MODEL=best` to test the multilingual
+model, and optionally set `MURMUR_TEST_EXPECTED` to text the result should contain.
+This opt-in test can download missing models and tokenizers.
+
 ## Repo structure
 
 ```text

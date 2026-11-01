@@ -22,13 +22,12 @@ private enum TranscriberError: LocalizedError {
 
 private final class ModelDownloadProgressReporter {
     private let label: String
-    private let formatter = ByteCountFormatter()
     private let lock = NSLock()
     private var lastBucket = -1
+    private var finished = false
 
     init(label: String) {
         self.label = label
-        formatter.countStyle = .file
     }
 
     func start(modelName: String) {
@@ -45,19 +44,19 @@ private final class ModelDownloadProgressReporter {
         let bucket = percent == 100 ? 100 : (percent / 5) * 5
 
         lock.lock()
-        guard bucket != lastBucket else {
-            lock.unlock()
+        defer { lock.unlock() }
+        guard !finished, bucket != lastBucket else {
             return
         }
         lastBucket = bucket
-        lock.unlock()
 
-        let amount = formattedAmount(progress)
+        let amount = ModelFiles.progressAmount(progress)
         DebugLog.shared.add("Downloading \(label) model: \(bucket)%\(amount)")
         publish(percent: bucket)
     }
 
     func finish(folder: URL) {
+        stopUpdates()
         DebugLog.shared.add("Downloading \(label) model: 100% complete at \(folder.path)")
         publish(percent: 100)
         DispatchQueue.main.async {
@@ -67,6 +66,7 @@ private final class ModelDownloadProgressReporter {
     }
 
     func fail(_ error: Error) {
+        stopUpdates()
         DebugLog.shared.add("Downloading \(label) model failed: \(error.localizedDescription)")
         DispatchQueue.main.async {
             StatusBarController.shared.finishModelDownload()
@@ -74,11 +74,10 @@ private final class ModelDownloadProgressReporter {
         }
     }
 
-    private func formattedAmount(_ progress: Progress) -> String {
-        guard progress.totalUnitCount > 0, progress.completedUnitCount >= 0 else { return "" }
-        let completed = formatter.string(fromByteCount: progress.completedUnitCount)
-        let total = formatter.string(fromByteCount: progress.totalUnitCount)
-        return " (\(completed) / \(total))"
+    private func stopUpdates() {
+        lock.lock()
+        finished = true
+        lock.unlock()
     }
 
     private func publish(percent: Int) {
@@ -196,14 +195,22 @@ enum WhisperModelOption: String, CaseIterable, Identifiable {
 actor Transcriber {
 
     private static let localLoadTimeoutSeconds: UInt64 = 20
+    private static let gpuLoadTimeoutSeconds: UInt64 = 120
     private static let downloadTimeoutSeconds: UInt64 = 900
 
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
     private var loadedOption: WhisperModelOption?
+    private let preparations = InFlightModelTasks<WhisperKit>()
+    private let compilations = InFlightModelTasks<WhisperKit>()
+    private let modelSelection: @Sendable () -> WhisperModelOption
+
+    init(modelSelection: @escaping @Sendable () -> WhisperModelOption = { .selected }) {
+        self.modelSelection = modelSelection
+    }
 
     func preloadSelectedModel() async {
-        let selected = WhisperModelOption.selected
+        let selected = modelSelection()
         DebugLog.shared.add("Preparing transcription model: \(selected.label) (\(selected.modelName))")
         do {
             try await ensureLoaded(allowDownload: true, purpose: "preload")
@@ -221,7 +228,7 @@ actor Transcriber {
     /// Preload may download the requested model. Active dictation avoids large
     /// downloads when a local fallback can keep the user moving.
     private func ensureLoaded(allowDownload: Bool, purpose: String) async throws {
-        let selected = WhisperModelOption.selected
+        let selected = modelSelection()
         let downloadState = allowDownload ? "allowed" : "deferred"
         DebugLog.shared.add("Transcription model request: \(selected.label), purpose=\(purpose), downloads=\(downloadState)")
 
@@ -235,6 +242,7 @@ actor Transcriber {
         }
 
         var lastError: Error?
+        var attemptedFast = false
         for option in selected.fallbackChain {
             if whisperKit != nil, loadedModelName == option.modelName {
                 DebugLog.shared.add("Using already-loaded transcription model: \(option.label)")
@@ -246,6 +254,7 @@ actor Transcriber {
                 DebugLog.shared.add("Skipping \(option.label) download during \(purpose); model is not local yet")
                 continue
             }
+            if option == .fast { attemptedFast = true }
 
             do {
                 let kit = try await loadWhisperKit(
@@ -263,6 +272,8 @@ actor Transcriber {
                     DebugLog.shared.add("WhisperKit fallback active: using \(option.label) because \(selected.label) was unavailable")
                 }
                 return
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 lastError = error
                 DebugLog.shared.add("Whisper model load failed for \(option.label): \(error.localizedDescription)")
@@ -274,7 +285,7 @@ actor Transcriber {
             return
         }
 
-        if !allowDownload {
+        if !allowDownload, !attemptedFast {
             DebugLog.shared.add("No local transcription model available for dictation; downloading Fast emergency model")
             do {
                 let emergency = WhisperModelOption.fast
@@ -289,6 +300,8 @@ actor Transcriber {
                 loadedOption = emergency
                 DebugLog.shared.add("Emergency transcription fallback ready: \(emergency.label)")
                 return
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 lastError = error
                 DebugLog.shared.add("Emergency Fast model load failed: \(error.localizedDescription)")
@@ -299,6 +312,20 @@ actor Transcriber {
     }
 
     private func loadWhisperKit(
+        option: WhisperModelOption,
+        requested: WhisperModelOption,
+        localModelFolder: URL?,
+        allowDownload: Bool
+    ) async throws -> WhisperKit {
+        try await preparations.value(for: option.modelName) {
+            try await self.prepareWhisperKit(
+                option: option, requested: requested,
+                localModelFolder: localModelFolder, allowDownload: allowDownload
+            )
+        }
+    }
+
+    private func prepareWhisperKit(
         option: WhisperModelOption,
         requested: WhisperModelOption,
         localModelFolder: URL?,
@@ -317,19 +344,46 @@ actor Transcriber {
             }
             modelFolder = try await downloadModel(option: option, requested: requested)
         }
-        let config = WhisperKitConfig(
-            model: nil,
-            downloadBase: modelDownloadBase(),
-            modelFolder: modelFolder.path,
-            verbose: false,
-            logLevel: .error,
-            prewarm: true,
-            load: true,
-            download: false
-        )
-        return try await withModelLoadTimeout(seconds: Self.localLoadTimeoutSeconds, label: option.label) {
-            try await WhisperKit(config)
+        // This compressed large model can stall ANE compilation and block other Core ML loads.
+        if option == .maxAccuracy {
+            return try await compileModel(option: option, folder: modelFolder, useGPU: true)
         }
+        do {
+            return try await compileModel(option: option, folder: modelFolder, useGPU: false)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            DebugLog.shared.add("\(option.label) model load failed: \(error.localizedDescription); retrying the same model on CPU/GPU")
+            return try await compileModel(option: option, folder: modelFolder, useGPU: true)
+        }
+    }
+
+    private func compileModel(option: WhisperModelOption, folder: URL, useGPU: Bool) async throws -> WhisperKit {
+        let backend = useGPU ? "CPU/GPU" : "Neural Engine"
+        let seconds = useGPU ? Self.gpuLoadTimeoutSeconds : Self.localLoadTimeoutSeconds
+        let tasks = compilations
+        let downloadBase = modelDownloadBase()
+        DebugLog.shared.add("Loading \(option.label) model on \(backend) (timeout: \(seconds)s)")
+        let kit = try await withModelLoadTimeout(seconds: seconds, label: "\(option.label) (\(backend))") {
+            try await tasks.value(for: "\(option.modelName):\(backend)") {
+                let config = WhisperKitConfig(
+                    model: nil,
+                    downloadBase: downloadBase,
+                    modelFolder: folder.path,
+                    computeOptions: useGPU ? ModelComputeOptions(
+                        audioEncoderCompute: .cpuAndGPU, textDecoderCompute: .cpuAndGPU
+                    ) : nil,
+                    verbose: false,
+                    logLevel: .error,
+                    prewarm: !useGPU,
+                    load: true,
+                    download: false
+                )
+                return try await WhisperKit(config)
+            }
+        }
+        DebugLog.shared.add("Loaded \(option.label) model on \(backend)")
+        return kit
     }
 
     private func downloadModel(option: WhisperModelOption, requested: WhisperModelOption) async throws -> URL {
@@ -359,25 +413,7 @@ actor Transcriber {
     }
 
     private func existingLocalModelFolder(modelName: String) -> URL? {
-        let folder = modelDownloadBase()
-            .appendingPathComponent("argmaxinc", isDirectory: true)
-            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
-            .appendingPathComponent(modelName, isDirectory: true)
-
-        let requiredModelNames = [
-            "MelSpectrogram.mlmodelc",
-            "AudioEncoder.mlmodelc",
-            "TextDecoder.mlmodelc"
-        ]
-        let hasRequiredFiles = requiredModelNames.allSatisfy {
-            FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
-        }
-
-        if !hasRequiredFiles, FileManager.default.fileExists(atPath: folder.path) {
-            DebugLog.shared.add("Found incomplete Whisper model folder; will try download/repair: \(folder.path)")
-        }
-
-        return hasRequiredFiles ? folder : nil
+        ModelFiles.existingFolder(downloadBase: modelDownloadBase(), modelName: modelName)
     }
 
     private func modelDownloadBase() -> URL {
@@ -436,7 +472,7 @@ actor Transcriber {
     }
 
     func currentModelLabel() -> String {
-        loadedOption?.label ?? WhisperModelOption.selected.label
+        loadedOption?.label ?? modelSelection().label
     }
 
     private func transcribeOnce(
@@ -473,7 +509,7 @@ actor Transcriber {
         do {
             let retryKit = try await loadWhisperKit(
                 option: option,
-                requested: WhisperModelOption.selected,
+                requested: modelSelection(),
                 localModelFolder: localModelFolder,
                 allowDownload: false
             )
@@ -518,20 +554,10 @@ actor Transcriber {
         label: String,
         operation: @escaping @Sendable () async throws -> T
     ) async throws -> T {
-        try await withThrowingTaskGroup(of: T.self) { group in
-            defer { group.cancelAll() }
-            group.addTask {
-                try await operation()
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: seconds * 1_000_000_000)
-                throw TranscriberError.modelLoadTimedOut(label: label, seconds: seconds)
-            }
-
-            guard let result = try await group.next() else {
-                throw TranscriberError.modelLoadTimedOut(label: label, seconds: seconds)
-            }
-            return result
-        }
+        try await withAsyncTimeout(
+            nanoseconds: seconds * 1_000_000_000,
+            timeoutError: TranscriberError.modelLoadTimedOut(label: label, seconds: seconds),
+            operation: operation
+        )
     }
 }
